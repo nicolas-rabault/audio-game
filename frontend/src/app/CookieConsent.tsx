@@ -8,7 +8,6 @@ export function useCookieConsentState() {
   const [consentLoaded, setConsentLoaded] = useState<boolean>(false);
 
   useEffect(() => {
-    // Check for existing consent using the same key as Jekyll
     const consent = localStorage.getItem("cookieConsent");
     setConsentGiven(consent == null ? null : consent === "true");
     setConsentLoaded(true);
@@ -48,26 +47,14 @@ export default function CookieConsent() {
   const [showDetails, setShowDetails] = useState(false);
   const { consentGiven, consentLoaded, setConsent } = useCookieConsentState();
 
-  const handleAccept = () => {
-    setConsent(true);
-    // onConsentChange(true);
-  };
-
-  const handleDecline = () => {
-    setConsent(false);
-    // onConsentChange(false);
-  };
-
   if (!consentLoaded) {
     return null; // Wait until consent state is loaded
   }
 
   if (consentGiven === true) {
-    /*
-    To debug Google Analytics, add debugMode={true} here and go to the Tag Assistant:
-    https://tagassistant.google.com/
-    Make sure you don't use an adblocker for localhost, as it will block the GA script.
-    */
+    // To debug Google Analytics, add debugMode={true} here and go to the Tag Assistant:
+    // https://tagassistant.google.com/
+    // Make sure you don't use an adblocker for localhost, as it will block the GA script.
     return <GoogleAnalytics gaId="G-MLN0BSWF97" />;
   }
 
@@ -111,10 +98,10 @@ export default function CookieConsent() {
           </div>
 
           <div className="flex flex-row gap-2 w-full sm:w-auto justify-center">
-            <SquareButton kind="primary" onClick={handleAccept}>
+            <SquareButton kind="primary" onClick={() => setConsent(true)}>
               Accept
             </SquareButton>
-            <SquareButton kind="secondary" onClick={handleDecline}>
+            <SquareButton kind="secondary" onClick={() => setConsent(false)}>
               Decline
             </SquareButton>
           </div>
