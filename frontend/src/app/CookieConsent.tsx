@@ -26,7 +26,6 @@ export function useCookieConsentState() {
     };
   }, []);
 
-  // Optional: provide functions to update consent (in case you need them)
   const setConsent = (to: boolean | null) => {
     if (to != null) {
       localStorage.setItem("cookieConsent", "" + to);
