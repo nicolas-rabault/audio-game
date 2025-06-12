@@ -12,8 +12,6 @@ WORKDIR /app
 # Install dependencies based on the preferred package manager
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./
 RUN corepack enable pnpm && pnpm i --frozen-lockfile
-RUN pnpm run lint --max-warnings 0
-
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -27,6 +25,7 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN corepack enable pnpm && pnpm run build
+RUN pnpm run lint --max-warnings 0
 
 # Production image, copy all the files and run next
 FROM base AS runner
