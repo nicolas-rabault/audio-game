@@ -118,8 +118,8 @@ class SpeechToText(ServiceWithStartup):
     async def send_marker(self, id: int) -> None:
         await self._send({"type": "Marker", "id": id})
 
-    # data = msgpack.packb({"type": "Marker", "id": id})
     async def _send(self, data: dict) -> None:
+        """Send an arbitrary message to the STT server."""
         to_send = msgpack.packb(data, use_bin_type=True, use_single_float=True)
 
         if self.websocket:
