@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  build:
+  build-docker-images:
     runs-on: ubuntu-latest
 
     steps:
@@ -17,4 +17,17 @@ jobs:
       - name: Build all docker images
         run: docker buildx bake --progress=plain -f swarm-deploy.yml
         env:
-          DOMAIN: hello 
+          DOMAIN: hello
+  pre-commit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.7.12"
+
+      - name
