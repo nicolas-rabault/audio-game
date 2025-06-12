@@ -16,3 +16,5 @@ jobs:
 
       - name: Build all docker images
         run: docker buildx bake --progress=plain -f swarm-deploy.yml
+        env:
+          DOMAIN: hello 
