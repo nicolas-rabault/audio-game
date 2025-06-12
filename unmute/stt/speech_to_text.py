@@ -76,7 +76,6 @@ class SpeechToText(ServiceWithStartup):
         self.stt_instance = stt_instance
         self.delay_sec = delay_sec
         self.websocket: websockets.ClientConnection | None = None
-        self.stt_instance = stt_instance
         self.sent_samples = 0
         self.received_words = 0
         self.current_time = -STT_DELAY_SEC
