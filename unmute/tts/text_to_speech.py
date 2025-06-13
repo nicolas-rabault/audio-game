@@ -109,17 +109,17 @@ AUDIO_BUFFER_SEC = 0.080 * 4
 
 
 def prepare_text_for_tts(text: str) -> str:
-    text = text.strip()
-
     unpronounceable_chars = "*_`"
     for char in unpronounceable_chars:
         text = text.replace(char, "")
 
     text = text.replace("“", '"').replace("”", '"')
     text = text.replace("‘", "'").replace("’", "'")
-    text = text.replace(" : ", " ")
 
-    return text
+    # Let's get rid entirely of ':' as it tends to make the TTS go mad.
+    text = text.replace(":", " ")
+
+    return text.strip()
 
 
 class TtsStreamingQuery(BaseModel):

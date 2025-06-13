@@ -14,7 +14,11 @@ text_bos_token = 1
 
 [modules.tts_py.py]
 log_folder = "/logs"
-moshi_weight = "/models/tts_2961f6b6@82/checkpoint.safetensors"
-config_path = "/models/tts_2961f6b6@82/config.json"
-voice_folder = "/models/"
+moshi_weight = "/models/moshi/moshi_d9876fea_500/checkpoint.safetensors"
+config_path = "/models/moshi/moshi_d9876fea_500/config.json"
+tokenizer = "/models/test_en_fr_audio_8000.model"
+voice_folder = "/models/tts-voices/"
 default_voice = "barack_demo.wav"
+cfg_is_no_text = true
+n_q = 24
+cfg_coef = 1.5
