@@ -13,6 +13,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Set up a builder (we don't want to load the images)
+        run: docker buildx create --name mybuilder --use
+
       - name: Build all docker images
         run: docker buildx bake --progress=plain -f swarm-deploy.yml workers frontend tts
         env:
