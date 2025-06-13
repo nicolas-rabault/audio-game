@@ -44,7 +44,9 @@ jobs:
         run: cd frontend && pnpm install
 
       - name: Run pre-commit
-        run: uv run pre-commit run --all-files
+        run: |
+          uv run pre-commit run --all-files
+          uv run pre-commit run --all-files --hook-stage pre-push
 
   backend-unit-tests:
     runs-on: ubuntu-latest
