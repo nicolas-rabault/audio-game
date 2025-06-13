@@ -428,7 +428,7 @@ def main(
     )
     print(
         "OK fraction:",
-        sum([int(isinstance(r, Exception)) for r in reports]) / len(reports),
+        sum([int(not isinstance(r, Exception)) for r in reports]) / len(reports),
     )
 
 
