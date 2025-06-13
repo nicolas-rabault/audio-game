@@ -29,6 +29,18 @@ jobs:
         with:
           version: "0.7.12"
 
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install dependencies
+        run: cd frontend && pnpm install
+
       - name: Run pre-commit
         run: uv run pre-commit run --all-files
 

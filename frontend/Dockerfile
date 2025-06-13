@@ -25,7 +25,6 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN corepack enable pnpm && pnpm run build
-RUN pnpm run lint --max-warnings 0
 
 # Production image, copy all the files and run next
 FROM base AS runner

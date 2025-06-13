@@ -23,3 +23,19 @@ repos:
     rev: v3.2.0
     hooks:
       - id: trailing-whitespace
+  - repo: local
+    hooks:
+      - id: pnpm-run-lint
+        name: pnpm run lint
+        language: system
+        entry: bash -c 'cd frontend && pnpm run lint --max-warnings 0'
+        files: ^frontend/src/.*$
+        pass_filenames: false
+        stages: [pre-commit]
+      - id: pnpm-run-build
+        name: pnpm run build
+        language: system
+        entry: bash -c 'cd frontend && pnpm run build'
+        files: ^frontend/src/.*$
+        pass_filenames: false
+        stages: [pre-push]
