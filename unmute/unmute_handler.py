@@ -52,7 +52,7 @@ from unmute.tts.text_to_speech import (
 # TTS_DEBUGGING_TEXT: str | None = "What's the difference between a bagel and a donut?"
 TTS_DEBUGGING_TEXT = None
 DO_RECORDING = False
-# AUDIO_INPUT_OVERRIDE: Path | None = Path.home() "audio/dog-or-cat-3.mp3"
+# AUDIO_INPUT_OVERRIDE: Path | None = Path.home() / "audio/dog-or-cat-3.mp3"
 AUDIO_INPUT_OVERRIDE: Path | None = None
 DEBUG_PLOT_HISTORY_SEC = 10.0
 
