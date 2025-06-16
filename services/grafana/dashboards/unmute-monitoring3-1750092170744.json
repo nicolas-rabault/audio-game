@@ -359,7 +359,7 @@
           "disableTextWrap": false,
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum by(__name__) (increase(worker_sessions_total[365d]))",
+          "expr": "sum by(__name__) (increase(worker_sessions_total[3650d]))",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -922,6 +922,7 @@
         "type": "prometheus",
         "uid": "PBFA97CFB590B2093"
       },
+      "description": "Each step is 0.08s. Not sure how to convert this to seconds.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -978,7 +979,7 @@
       "targets": [
         {
           "disableTextWrap": false,
-          "editorMode": "code",
+          "editorMode": "builder",
           "expr": "sum by(le) (increase(py_model_connection_num_steps_bucket[1d]))",
           "format": "heatmap",
           "fullMetaSearch": false,
@@ -989,7 +990,7 @@
           "useBackend": false
         }
       ],
-      "title": "TTS Num Steps",
+      "title": "TTS num steps per response",
       "type": "bargauge"
     },
     {
@@ -997,6 +998,7 @@
         "type": "prometheus",
         "uid": "PBFA97CFB590B2093"
       },
+      "description": "The ASR server runs in a batched mode, for everybody at once. To keep up with real time, the step must be faster than 0.08s.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1064,7 +1066,7 @@
           "useBackend": false
         }
       ],
-      "title": "ASR Model Step",
+      "title": "ASR model step (s)",
       "type": "bargauge"
     },
     {
@@ -1072,6 +1074,7 @@
         "type": "prometheus",
         "uid": "PBFA97CFB590B2093"
       },
+      "description": "The TTS server runs in a batched mode, for everybody at once. To generate audio in real time, the step must be faster than 0.08s.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1145,7 +1148,7 @@
           "useBackend": false
         }
       ],
-      "title": "TTS Model Step",
+      "title": "TTS model step (s)",
       "type": "bargauge"
     }
   ],
@@ -1164,5 +1167,5 @@
   "timezone": "browser",
   "title": "unmute-monitoring3",
   "uid": "cep53ia62t05cc",
-  "version": 5
+  "version": 7
 }
