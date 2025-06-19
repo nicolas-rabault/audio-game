@@ -60,6 +60,10 @@ app = FastAPI()
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO,
+)
 
 # We prefer to scale this by running more instances of the server than having a single
 # server handle more. This is to avoid the GIL.
