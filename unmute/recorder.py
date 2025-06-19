@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Annotated, Literal
@@ -61,5 +62,7 @@ class Recorder:
 
 
 def make_filename() -> str:
-    """Create a filename based on the current timestamp, without a suffix."""
-    return datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    """Create a unique filename based on the current timestamp and a short UUID, without a suffix."""
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    unique_id = uuid.uuid4().hex[:4]
+    return f"{timestamp}_{unique_id}"
