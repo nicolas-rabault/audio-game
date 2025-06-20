@@ -93,7 +93,7 @@ The following instructions only work for Linux and WSL.
 Start each of the services one by one in a different tmux session or terminal:
 ```bash
 ./dockerless/start_frontend.sh
-./dockerless/start_backend.sh
+./dockerless/start_worker.sh
 ./dockerless/start_llm.sh        # Needs 6.1GB of vram
 ./dockerless/start_stt.sh        # Needs 2.5GB of vram
 ./dockerless/start_tts.sh        # Needs 5.3GB of vram
@@ -122,6 +122,8 @@ The backend and frontend communicate over websocket using a protocol based on th
 Where possible, we try to match the ORA format, but there are some extra messages we needed to add,
 and others have simplified parameters.
 We try to make it clear where we deviate from the ORA format, see [`unmute/openai_realtime_api_events.py`](unmute/openai_realtime_api_events.py).
+
+For detailed information about the WebSocket communication protocol, message types, and audio processing pipeline, see the [browser-backend communication documentation](docs/browser_backend_communication.md).
 
 Ideally, it should be simple to write a single frontend that can communicate with either the Unmute backend
 or the OpenAI Realtime API, but we are not fully compatible yet.
