@@ -57,13 +57,14 @@ class Recorder:
             await self.opened_file.close()
             if keep_recording:
                 logger.info(f"Recording stored into {self.path}.")
-
-        if not keep_recording and self.path.exists():
-            try:
-                self.path.unlink()
-                logger.info(f"Deleted recording {self.path} due to lack of consent.")
-            except Exception as e:
-                logger.error(f"Failed to delete recording file {self.path}: {e}")
+            else:
+                try:
+                    self.path.unlink()
+                    logger.info(
+                        f"Deleted recording {self.path} due to lack of consent."
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to delete recording file {self.path}: {e}")
 
 
 def make_filename() -> str:
