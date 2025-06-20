@@ -16,7 +16,7 @@ Unmute uses a WebSocket-based protocol inspired by the [OpenAI Realtime API](htt
 ### Endpoint
 - **URL**: `/v1/realtime`
 - **Protocol**: `realtime` (specified in WebSocket subprotocol)
-- **Port**: 8000 (development), routed through Traefik in Docker Swarm and Compose. Traefik use http(port 80) and https (port 443).
+- **Port**: 8000 (development), routed through Traefik in Docker Swarm and Compose. Traefik uses http (port 80) and https (port 443).
 
 ### Connection setup
 
