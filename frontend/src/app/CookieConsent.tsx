@@ -3,18 +3,21 @@ import { useEffect, useState } from "react";
 import SquareButton from "./SquareButton";
 import { GoogleAnalytics } from "@next/third-parties/google";
 
-export function useCookieConsentState() {
+// Changing this key will reset the consent state for all users
+export const CONSENT_STORAGE_KEY = "cookieAndRecordingConsent";
+
+export function useConsentState(storageKey: string) {
   const [consentGiven, setConsentGiven] = useState<boolean | null>(false);
   const [consentLoaded, setConsentLoaded] = useState<boolean>(false);
 
   useEffect(() => {
-    const consent = localStorage.getItem("cookieConsent");
+    const consent = localStorage.getItem(storageKey);
     setConsentGiven(consent == null ? null : consent === "true");
     setConsentLoaded(true);
 
     // Listen for localStorage changes (in case consent is given on another tab/page)
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "cookieConsent") {
+      if (e.key === storageKey) {
         setConsentGiven(e.newValue === "true");
       }
     };
@@ -24,13 +27,13 @@ export function useCookieConsentState() {
     return () => {
       window.removeEventListener("storage", handleStorageChange);
     };
-  }, []);
+  }, [storageKey]);
 
   const setConsent = (to: boolean | null) => {
     if (to != null) {
-      localStorage.setItem("cookieConsent", "" + to);
+      localStorage.setItem(storageKey, "" + to);
     } else {
-      localStorage.removeItem("cookieConsent");
+      localStorage.removeItem(storageKey);
     }
     setConsentGiven(to);
   };
@@ -44,7 +47,8 @@ export function useCookieConsentState() {
 
 export default function CookieConsent() {
   const [showDetails, setShowDetails] = useState(false);
-  const { consentGiven, consentLoaded, setConsent } = useCookieConsentState();
+  const { consentGiven, consentLoaded, setConsent } =
+    useConsentState(CONSENT_STORAGE_KEY);
 
   if (!consentLoaded) {
     return null; // Wait until consent state is loaded
@@ -66,9 +70,9 @@ export default function CookieConsent() {
     <div className="fixed bottom-0 left-0 right-0 bg-gray border-t border-green shadow-lg z-50">
       <div className="max-w-7xl mx-auto p-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex-1">
+          <div className="flex-1 text-sm text-textgray">
             <p className="text-sm text-textgray mb-2">
-              We use cookies to improve your experience and analyze site usage.{" "}
+              Can we use cookies to improve your experience and analyze site usage?{" "}
               {!showDetails && (
                 <button
                   onClick={() => setShowDetails(true)}
@@ -77,6 +81,10 @@ export default function CookieConsent() {
                   Learn more
                 </button>
               )}
+            </p>
+            <p>
+              Can we also record the transcript of the conversation (your voice
+              will not be stored) to help our non-profit research?
             </p>
 
             {showDetails && (
