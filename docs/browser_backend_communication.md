@@ -52,7 +52,7 @@ All messages inherit from [`BaseEvent`](https://github.com/kyutai-labs/unmute/bl
 
 **Message Type**: `session.update`
 
-**Purpose**: Configure voice character and conversation instructions
+**Purpose**: Configure voice character and conversation instructions. The backend will not start sending messages until it gets a session.update message that sets its instructions.
 
 **Models**:
 - [`SessionUpdate`](https://github.com/kyutai-labs/unmute/blob/main/unmute/openai_realtime_api_events.py#L72-L73)
