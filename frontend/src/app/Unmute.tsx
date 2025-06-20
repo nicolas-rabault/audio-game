@@ -22,7 +22,7 @@ import { useRecordingCanvas } from "./useRecordingCanvas";
 import { useGoogleAnalytics } from "./useGoogleAnalytics";
 import clsx from "clsx";
 import { useBackendServerUrl } from "./useBackendServerUrl";
-import { CONSENT_STORAGE_KEY } from "./CookieConsent";
+import { COOKIE_CONSENT_STORAGE_KEY } from "./ConsentModal";
 
 const Unmute = () => {
   const { isDevMode, showSubtitles } = useKeyboardShortcuts();
@@ -226,7 +226,7 @@ const Unmute = () => {
     if (readyState !== ReadyState.OPEN) return;
 
     const recordingConsent =
-      localStorage.getItem(CONSENT_STORAGE_KEY) === "true";
+      localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY) === "true";
 
     setRawChatHistory([]);
     sendMessage(
