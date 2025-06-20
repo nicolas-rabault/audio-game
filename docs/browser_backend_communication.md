@@ -20,24 +20,9 @@ Unmute uses a WebSocket-based protocol inspired by the [OpenAI Realtime API](htt
 
 ### Connection setup
 
-**Frontend** ([`frontend/src/app/Unmute.tsx`](../frontend/src/app/Unmute.tsx)):
-```typescript
-const { sendMessage, lastMessage, readyState } = useWebSocket(
-  webSocketUrl || null,
-  {
-    protocols: ["realtime"],
-  },
-  shouldConnect
-);
-```
-
-**Backend** ([`unmute/main_websocket.py`](../unmute/main_websocket.py)):
-```python
-@app.websocket("/v1/realtime")
-async def websocket_route(websocket: WebSocket):
-    await websocket.accept(subprotocol="realtime")
-    # ... handler logic
-```
+The WebSocket connection is established using the `realtime` subprotocol. See implementation details in:
+- **Frontend**: [`frontend/src/app/Unmute.tsx`](../frontend/src/app/Unmute.tsx)
+- **Backend**: [`unmute/main_websocket.py`](../unmute/main_websocket.py)
 
 ## Message protocol
 
@@ -45,11 +30,7 @@ All messages are JSON-encoded with a common structure defined in [`unmute/openai
 
 ### Base message structure
 
-```python
-class BaseEvent(BaseModel, Generic[T]):
-    type: T                    # Message type identifier
-    event_id: str             # Unique event ID (auto-generated)
-```
+All messages inherit from [`BaseEvent`](https://github.com/kyutai-labs/unmute/blob/main/unmute/openai_realtime_api_events.py#L32-L50) which provides a common type and event_id structure.
 
 ## Client → server messages
 
@@ -59,26 +40,7 @@ class BaseEvent(BaseModel, Generic[T]):
 
 **Purpose**: Stream real-time audio data from microphone to backend
 
-**Frontend Implementation** ([`frontend/src/app/Unmute.tsx`](../frontend/src/app/Unmute.tsx)):
-```typescript
-const onOpusRecorded = useCallback(
-  (opus: Uint8Array) => {
-    sendMessage(
-      JSON.stringify({
-        type: "input_audio_buffer.append",
-        audio: base64EncodeOpus(opus),
-      })
-    );
-  },
-  [sendMessage]
-);
-```
-
-**Backend Model** ([`unmute/openai_realtime_api_events.py`](../unmute/openai_realtime_api_events.py)):
-```python
-class InputAudioBufferAppend(BaseEvent[Literal["input_audio_buffer.append"]]):
-    audio: str  # Base64-encoded Opus data
-```
+**Model**: [`InputAudioBufferAppend`](https://github.com/kyutai-labs/unmute/blob/main/unmute/openai_realtime_api_events.py#L80-L81)
 
 **Audio Format**:
 - **Codec**: Opus
@@ -92,28 +54,9 @@ class InputAudioBufferAppend(BaseEvent[Literal["input_audio_buffer.append"]]):
 
 **Purpose**: Configure voice character and conversation instructions
 
-**Frontend Implementation** ([`frontend/src/app/Unmute.tsx`](../frontend/src/app/Unmute.tsx)):
-```typescript
-sendMessage(
-  JSON.stringify({
-    type: "session.update",
-    session: {
-      instructions: unmuteConfig.instructions,
-      voice: unmuteConfig.voice,
-    },
-  })
-);
-```
-
-**Backend Models** ([`unmute/openai_realtime_api_events.py`](../unmute/openai_realtime_api_events.py)):
-```python
-class SessionConfig(BaseModel):
-    instructions: Instructions | None = None  # Character instructions
-    voice: str | None = None                  # Voice ID from voices.yaml
-
-class SessionUpdate(BaseEvent[Literal["session.update"]]):
-    session: SessionConfig
-```
+**Models**:
+- [`SessionUpdate`](https://github.com/kyutai-labs/unmute/blob/main/unmute/openai_realtime_api_events.py#L72-L73)
+- [`SessionConfig`](https://github.com/kyutai-labs/unmute/blob/main/unmute/openai_realtime_api_events.py#L66-L69)
 
 ## Server → client messages
 
@@ -123,31 +66,7 @@ class SessionUpdate(BaseEvent[Literal["session.update"]]):
 
 **Purpose**: Stream generated speech audio to frontend
 
-**Backend Implementation** ([`unmute/main_websocket.py`](../unmute/main_websocket.py)):
-```python
-opus_bytes = await asyncio.to_thread(opus_writer.append_pcm, audio)
-if opus_bytes:
-    to_emit = ora.ResponseAudioDelta(
-        delta=base64.b64encode(opus_bytes).decode("utf-8"),
-    )
-```
-
-**Frontend Handling** ([`frontend/src/app/Unmute.tsx`](../frontend/src/app/Unmute.tsx)):
-```typescript
-if (data.type === "response.audio.delta") {
-  const opus = base64DecodeOpus(data.delta);
-  const ap = audioProcessor.current;
-  if (!ap) return;
-
-  ap.decoder.postMessage(
-    {
-      command: "decode",
-      pages: opus,
-    },
-    [opus.buffer]
-  );
-}
-```
+**Model**: [`ResponseAudioDelta`](https://github.com/kyutai-labs/unmute/blob/main/unmute/openai_realtime_api_events.py#L133-L134)
 
 ### 2. Speech transcription
 
@@ -155,25 +74,7 @@ if (data.type === "response.audio.delta") {
 
 **Purpose**: Real-time transcription of user speech
 
-**Backend Implementation** ([`unmute/unmute_handler.py`](../unmute/unmute_handler.py)):
-```python
-await self.output_queue.put(
-    ora.ConversationItemInputAudioTranscriptionDelta(
-        delta=data.text,
-        start_time=data.start_time,
-    )
-)
-```
-
-**Frontend Handling** ([`frontend/src/app/Unmute.tsx`](../frontend/src/app/Unmute.tsx)):
-```typescript
-else if (data.type === "conversation.item.input_audio_transcription.delta") {
-  setRawChatHistory((prev) => [
-    ...prev,
-    { role: "user", content: data.delta },
-  ]);
-}
-```
+**Model**: [`ConversationItemInputAudioTranscriptionDelta`](https://github.com/kyutai-labs/unmute/blob/main/unmute/openai_realtime_api_events.py#L147-L151)
 
 ### 3. Text response streaming
 
@@ -181,20 +82,7 @@ else if (data.type === "conversation.item.input_audio_transcription.delta") {
 
 **Purpose**: Stream generated text responses (for display/debugging)
 
-**Backend Implementation** ([`unmute/unmute_handler.py`](../unmute/unmute_handler.py)):
-```python
-await output_queue.put(ora.ResponseTextDelta(delta=message.text))
-```
-
-**Frontend Handling** ([`frontend/src/app/Unmute.tsx`](../frontend/src/app/Unmute.tsx)):
-```typescript
-else if (data.type === "response.text.delta") {
-  setRawChatHistory((prev) => [
-    ...prev,
-    { role: "assistant", content: " " + data.delta },
-  ]);
-}
-```
+**Model**: [`ResponseTextDelta`](https://github.com/kyutai-labs/unmute/blob/main/unmute/openai_realtime_api_events.py#L125-L126)
 
 ### 4. Speech detection events
 
@@ -202,16 +90,11 @@ else if (data.type === "response.text.delta") {
 - `input_audio_buffer.speech_started`
 - `input_audio_buffer.speech_stopped`
 
-**Purpose**: Indicate when user starts/stops speaking (for UI feedback)
+**Purpose**: Indicate when user starts/stops speaking (for UI feedback). In Unmute we actually just ignore these events at the moment, even though we report them.
 
-**Backend Implementation** ([`unmute/unmute_handler.py`](../unmute/unmute_handler.py)):
-```python
-# Speech stopped (pause detected)
-await self.output_queue.put(ora.InputAudioBufferSpeechStopped())
-
-# Speech started (first transcription received)
-await self.output_queue.put(ora.InputAudioBufferSpeechStarted())
-```
+**Models**:
+- [`InputAudioBufferSpeechStarted`](https://github.com/kyutai-labs/unmute/blob/main/unmute/openai_realtime_api_events.py#L95-L105)
+- [`InputAudioBufferSpeechStopped`](https://github.com/kyutai-labs/unmute/blob/main/unmute/openai_realtime_api_events.py#L108-L111)
 
 ### 5. Response status updates
 
@@ -219,14 +102,9 @@ await self.output_queue.put(ora.InputAudioBufferSpeechStarted())
 
 **Purpose**: Indicate when assistant starts generating a response
 
-**Backend Model** ([`unmute/openai_realtime_api_events.py`](../unmute/openai_realtime_api_events.py)):
-```python
-class Response(BaseModel):
-    object: Literal["realtime.response"] = "realtime.response"
-    status: Literal["in_progress", "completed", "cancelled", "failed", "incomplete"]
-    voice: str
-    chat_history: list[dict[str, Any]] = Field(default_factory=list)
-```
+**Models**:
+- [`ResponseCreated`](https://github.com/kyutai-labs/unmute/blob/main/unmute/openai_realtime_api_events.py#L121-L122)
+- [`Response`](https://github.com/kyutai-labs/unmute/blob/main/unmute/openai_realtime_api_events.py#L114-L118)
 
 ### 6. Error handling
 
@@ -234,30 +112,9 @@ class Response(BaseModel):
 
 **Purpose**: Communicate errors and warnings
 
-**Backend Implementation** ([`unmute/main_websocket.py`](../unmute/main_websocket.py)):
-```python
-await emit_queue.put(
-    ora.Error(
-        error=ora.ErrorDetails(
-            type="invalid_request_error",
-            message="Invalid message",
-            details=json.loads(e.json()),
-        )
-    )
-)
-```
-
-**Frontend Handling** ([`frontend/src/app/Unmute.tsx`](../frontend/src/app/Unmute.tsx)):
-```typescript
-else if (data.type === "error") {
-  if (data.error.type === "warning") {
-    console.warn(`Warning from server: ${data.error.message}`, data);
-  } else {
-    console.error(`Error from server: ${data.error.message}`, data);
-    setErrors((prev) => [...prev, makeErrorItem(data.error.message)]);
-  }
-}
-```
+**Models**:
+- [`Error`](https://github.com/kyutai-labs/unmute/blob/main/unmute/openai_realtime_api_events.py#L62-L63)
+- [`ErrorDetails`](https://github.com/kyutai-labs/unmute/blob/main/unmute/openai_realtime_api_events.py#L53-L59)
 
 ## Connection lifecycle
 
