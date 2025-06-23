@@ -242,7 +242,7 @@ services:
         "--model=${KYUTAI_LLM_MODEL}",
         "--max-model-len=8192",
         "--dtype=bfloat16",
-        "--tokenizer_mode=mistral",
+        "--tokenizer_mode=mistral",  # You can remove those args if you're not using mistral
         "--config_format=mistral",
         "--load-format=mistral",
       ]
