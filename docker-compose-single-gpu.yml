@@ -64,9 +64,14 @@ services:
     command: ["worker", "--config", "configs/tts-py.toml"]
     build:
       context: services/moshi-server
+      ssh:
+        - default
+      args:
+        GITHUB_ORG: $GITHUB_ORG
     environment:
       - TTS_CONFIG=/app/configs/tts.toml
       - NVIDIA_VISIBLE_DEVICES=all
+      - HUGGING_FACE_HUB_TOKEN=$HUGGING_FACE_HUB_TOKEN
     volumes:
       - ./volumes/cargo-registry:/root/.cargo/registry
       - ./volumes/tts-release:/app/target/release/
@@ -79,8 +84,13 @@ services:
     command: ["worker", "--config", "configs/stt.toml"]
     build:
       context: services/moshi-server
+      ssh:
+        - default
+      args:
+        GITHUB_ORG: $GITHUB_ORG
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
+      - HUGGING_FACE_HUB_TOKEN=$HUGGING_FACE_HUB_TOKEN
     volumes:
       - ./volumes/cargo-registry:/root/.cargo/registry
       - ./volumes/stt-release:/app/target/release/
@@ -95,7 +105,7 @@ services:
         "--model=google/gemma-3-1b-it",
         "--max-model-len=8192",
         "--dtype=bfloat16",
-        "--gpu-memory-utilization=0.8"
+        # "--gpu-memory-utilization=0.8"
       ]
     volumes:
       - ./volumes/huggingface-cache:/root/.cache/huggingface"
