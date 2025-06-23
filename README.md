@@ -46,14 +46,15 @@ Since the services are Docker containers, you get a reproducible environment wit
 
 While we support deploying with Docker compose and without Docker, the Docker Swarm deployment is only given to show how we deploy and scale [unmute.sh](unmute.sh). It looks a lot like the compose files, but since debugging multi-nodes applications is hard, we cannot help you debug the swarm deployment.
 
-### Gemma 3 access
+### LLM access on Hugging Face Hub
 
 You can use any LLM you want.
-By default, Unmute uses [Gemma 3 12B](https://huggingface.co/google/gemma-3-12b-it) as the LLM.
+By default, Unmute uses [Mistral Small 3.2 24B](https://huggingface.co/mistralai/Mistral-Small-3.2-24B-Instruct-2506) as the LLM.
+([Gemma 3 12B](https://huggingface.co/google/gemma-3-12b-it) is also a good choice.)
 This model is freely available but requires you to accept the conditions to accept it:
 
 1. Create a Hugging Face account.
-2. Accept the conditions on the [Gemma model page](https://huggingface.co/google/gemma-3-12b-it).
+2. Accept the conditions on the [Mistral Small 3.2 24B model page](https://huggingface.co/mistralai/Mistral-Small-3.2-24B-Instruct-2506).
 3. [Create an access token.](https://huggingface.co/docs/hub/en/security-tokens) You can use a fine-grained token, the only permission you need to grant is "Read access to contents of all public gated repos you can access".
 4. Add the token into your `~/.bashrc` or equivalent as `export HUGGING_FACE_HUB_TOKEN=hf_...your token here...`
 
@@ -72,7 +73,7 @@ docker compose -f docker-compose.yml up
 
 Unmute is meant to be run on multiple GPUs. Running everything (speech-to-text, text-to-speech, and the VLLM server) on the same GPU is possible, but **will result in significantly worse latency**.
 If you plan to run on a single GPU, replace `docker-compose.yml` with `docker-compose-single-gpu.yml` in the command above.
-That configuration file uses Gemma 3 1B instead of the default 12B, and sets the batch sizes of the STT and TTS lower so that everything fits onto one GPU.
+That configuration file uses Gemma 3 1B instead of Mistral Small 24B, and sets the batch sizes of the STT and TTS lower so that everything fits onto one GPU.
 
 ### Running without Docker
 
@@ -93,7 +94,7 @@ The following instructions only work for Linux and WSL.
 Start each of the services one by one in a different tmux session or terminal:
 ```bash
 ./dockerless/start_frontend.sh
-./dockerless/start_worker.sh
+./dockerless/start_backend.sh
 ./dockerless/start_llm.sh        # Needs 6.1GB of vram
 ./dockerless/start_stt.sh        # Needs 2.5GB of vram
 ./dockerless/start_tts.sh        # Needs 5.3GB of vram
@@ -122,6 +123,8 @@ The backend and frontend communicate over websocket using a protocol based on th
 Where possible, we try to match the ORA format, but there are some extra messages we needed to add,
 and others have simplified parameters.
 We try to make it clear where we deviate from the ORA format, see [`unmute/openai_realtime_api_events.py`](unmute/openai_realtime_api_events.py).
+
+For detailed information about the WebSocket communication protocol, message types, and audio processing pipeline, see the [browser-backend communication documentation](docs/browser_backend_communication.md).
 
 Ideally, it should be simple to write a single frontend that can communicate with either the Unmute backend
 or the OpenAI Realtime API, but we are not fully compatible yet.

@@ -22,6 +22,7 @@ from unmute.audio_input_override import AudioInputOverride
 from unmute.exceptions import make_ora_error
 from unmute.kyutai_constants import (
     FRAME_TIME_SEC,
+    RECORDINGS_DIR,
     SAMPLE_RATE,
     SAMPLES_PER_FRAME,
 )
@@ -51,14 +52,14 @@ from unmute.tts.text_to_speech import (
 # TTS_DEBUGGING_TEXT: str | None = "What's 'Hello world'?"
 # TTS_DEBUGGING_TEXT: str | None = "What's the difference between a bagel and a donut?"
 TTS_DEBUGGING_TEXT = None
-DO_RECORDING = False
+
 # AUDIO_INPUT_OVERRIDE: Path | None = Path.home() / "audio/dog-or-cat-3.mp3"
 AUDIO_INPUT_OVERRIDE: Path | None = None
 DEBUG_PLOT_HISTORY_SEC = 10.0
 
 USER_SILENCE_TIMEOUT = 7.0
-FIRST_MESSAGE_TEMPERATURE = 1.3
-FURTHER_MESSAGES_TEMPERATURE = 0.8
+FIRST_MESSAGE_TEMPERATURE = 0.7
+FURTHER_MESSAGES_TEMPERATURE = 0.3
 # For this much time, the VAD does not interrupt the bot. This is needed because at
 # least on Mac, the echo cancellation takes a while to kick in, at the start, so the ASR
 # sometimes hears a bit of the TTS audio and interrupts the bot. Only happens on the
@@ -89,7 +90,8 @@ class UnmuteHandler(AsyncStreamHandler):
         )
         self.n_samples_received = 0  # Used for measuring time
         self.output_queue: asyncio.Queue[HandlerOutput] = asyncio.Queue()
-        self.recorder = Recorder()
+        self.recorder = Recorder(RECORDINGS_DIR) if RECORDINGS_DIR else None
+
         self.quest_manager = QuestManager()
 
         self.stt_last_message_time: float = 0
@@ -116,6 +118,10 @@ class UnmuteHandler(AsyncStreamHandler):
             self.audio_input_override = AudioInputOverride(AUDIO_INPUT_OVERRIDE)
         else:
             self.audio_input_override = None
+
+    async def cleanup(self):
+        if self.recorder is not None:
+            await self.recorder.shutdown()
 
     @property
     def stt(self) -> SpeechToText | None:
@@ -169,7 +175,6 @@ class UnmuteHandler(AsyncStreamHandler):
             delta, role, generating_message_i=generating_message_i
         )
 
-        await self.output_queue.put(self.get_gradio_update())
         return is_new_message
 
     async def _generate_response(self):
@@ -412,9 +417,6 @@ class UnmuteHandler(AsyncStreamHandler):
 
     async def start_up(self):
         await self.start_up_stt()
-        if DO_RECORDING:
-            quest = Quest.from_run_step("recorder", self.recorder.run)
-            await self.quest_manager.add(quest)
         self.waiting_for_user_start_time = self.audio_received_sec()
 
     async def __aexit__(self, *exc: Any) -> None:
@@ -635,9 +637,15 @@ class UnmuteHandler(AsyncStreamHandler):
             logger.info("Long silence detected.")
             await self.add_chat_message_delta(USER_SILENCE_MARKER, "user")
 
-    def update_session(self, session: ora.SessionConfig):
+    async def update_session(self, session: ora.SessionConfig):
         if session.instructions:
             self.chatbot.set_instructions(session.instructions)
 
         if session.voice:
             self.tts_voice = session.voice
+
+        if not session.allow_recording and self.recorder:
+            await self.recorder.add_event("client", ora.SessionUpdate(session=session))
+            await self.recorder.shutdown(keep_recording=False)
+            self.recorder = None
+            logger.info("Recording disabled for a session.")

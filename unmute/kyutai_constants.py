@@ -9,9 +9,11 @@ HEADERS = {"kyutai-api-key": "public_token"}
 STT_SERVER = http_to_ws(os.environ.get("KYUTAI_STT_URL", "ws://localhost:8090"))
 TTS_SERVER = http_to_ws(os.environ.get("KYUTAI_TTS_URL", "ws://localhost:8089"))
 LLM_SERVER = os.environ.get("KYUTAI_LLM_URL", "http://localhost:8091")
+KYUTAI_LLM_MODEL = os.environ.get("KYUTAI_LLM_MODEL")
 VOICE_CLONING_SERVER = os.environ.get(
     "KYUTAI_VOICE_CLONING_URL", "http://localhost:8092"
 )
+# If None, a dict-based cache will be used instead of Redis
 REDIS_SERVER = os.environ.get("KYUTAI_REDIS_URL")
 
 SPEECH_TO_TEXT_PATH = "/api/asr-streaming"
@@ -21,6 +23,10 @@ repo_root = Path(__file__).parents[1]
 VOICE_DONATION_DIR = Path(
     os.environ.get("KYUTAI_VOICE_DONATION_DIR", repo_root / "voices" / "donation")
 )
+
+# If None, recordings will not be saved
+_recordings_dir = os.environ.get("KYUTAI_RECORDINGS_DIR")
+RECORDINGS_DIR = Path(_recordings_dir) if _recordings_dir else None
 
 # Also checked on the frontend, see constant of the same name
 MAX_VOICE_FILE_SIZE_MB = 4
