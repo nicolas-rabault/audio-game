@@ -259,7 +259,7 @@ services:
       # This is where vLLM stores its cache, we want to keep it across restarts
       # to avoid recompiling the model every time.
       - vllm-cache:/root/.cache/vllm
-    shm_size: 10gb
+    shm_size: 10gb # Only needed for tensor-parallel-size >= 2
     environment:
       - HUGGING_FACE_HUB_TOKEN=$HUGGING_FACE_HUB_TOKEN
     deploy:
