@@ -225,23 +225,16 @@ services:
           cpus: "8"
           memory: 16G
 
-  # This service does not do anything, the only way to use it is to make a docker exec
-  # and run the benchmark script manually with:
-  # docker exec -it $(docker ps --format '{{.Names}}' | grep benchmark-llm) bash /run_bench.sh
-  benchmark-llm:
-    image: rg.fr-par.scw.cloud/namespace-unruffled-tereshkova/${DOMAIN}-benchmark-llm:latest
-    build:
-      context: services/benchmark-llm
-    environment:
-      - HUGGING_FACE_HUB_TOKEN=$HUGGING_FACE_HUB_TOKEN
-
   llm:
-    image: vllm/vllm-openai:v0.8.5.post1
+    image: vllm/vllm-openai:v0.9.1
     command:
       [
         "--model=${KYUTAI_LLM_MODEL}",
         "--max-model-len=8192",
         "--dtype=bfloat16",
+        # "--tokenizer_mode=mistral",  # You can remove those args if you're not using mistral
+        # "--config_format=mistral",
+        # "--load-format=mistral",
       ]
     healthcheck:
       # The very first time it can be VERY slow, because of the download
