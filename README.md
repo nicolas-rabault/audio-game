@@ -34,8 +34,7 @@ We provide in this repository multiple ways of deploying your own [unmute.sh](un
 
 | Name                      | Number of gpus | Number of machines | Difficulty | Documented | Kyutai support |
 |---------------------------|----------------|--------------------|------------|------------|----------------|
-| Docker compose single-gpu | 1              | 1                  | Very easy  |✅         |✅              |
-| Docker compose multi-gpu  | 3              | 1                  | Very easy  |✅         |✅              |
+| Docker compose            | 1+             | 1                  | Very easy  |✅         |✅              |
 | Without Docker            | 1 to 3         | 1 to 5             | Easy       |✅         |✅              |
 | Docker swarm              | 1 to ~100      | 1 to ~100          | Medium     |✅         |❌              |
 
@@ -76,12 +75,12 @@ docker compose -f docker-compose.yml up
 
 We benchmarked on a single L40S GPU:
 The TTS latency increases from ~450ms (on [Unmute.sh](https://unmute.sh/)) to ~750ms.
-The vLLM time-to-first token _decreases_ from ~200ms (on [Unmute.sh](https://unmute.sh/)) because we use a much smaller LLM in the single-GPU setup.
+The vLLM time-to-first token _decreases_ from ~200ms (on [Unmute.sh](https://unmute.sh/)) because we use a much smaller LLM.
 
 #### Using multiple GPUs
 
-On [Unmute.sh](https://unmute.sh/), we run the speech-to-text, text-to-speech, and the VLLM server on separate GPUs.
-This improves the latency compared to a single-GPU setup.
+On [Unmute.sh](https://unmute.sh/), we run the speech-to-text, text-to-speech, and the VLLM server on separate GPUs,
+which improves the latency compared to a single-GPU setup.
 If you have at least three GPUs available, add this snippet to the `stt`, `tts` and `llm` services to ensure they are run on separate GPUs:
 
 ```yaml
