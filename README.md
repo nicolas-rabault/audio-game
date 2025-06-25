@@ -60,6 +60,11 @@ This model is freely available but requires you to accept the conditions to acce
 
 ### Start Unmute
 
+By default, the configuration files [for the speech-to-text](services/moshi-server/stt.toml)
+and [for the text-to-speech](services/moshi-server/tts-py.toml) have a high batch size to allow serving many users simultaneously.
+If you're just running Unmute for a single user, go to the two configuration files and change `batch_size` to 2.
+Using 2 instead of 1 will prevent issues with hitting the server capacity if you reconnect very quickly.
+
 On a machine with at least 3 GPUs available, run:
 
 ```bash
@@ -69,11 +74,19 @@ echo $HUGGING_FACE_HUB_TOKEN  # This should print hf_...something...
 docker compose -f docker-compose.yml up
 ```
 
-### Single GPU?
+#### Single GPU?
 
-Unmute is meant to be run on multiple GPUs. Running everything (speech-to-text, text-to-speech, and the VLLM server) on the same GPU is possible, but **will result in significantly worse latency**.
-If you plan to run on a single GPU, replace `docker-compose.yml` with `docker-compose-single-gpu.yml` in the command above.
-That configuration file uses Gemma 3 1B instead of Mistral Small 24B, and sets the batch sizes of the STT and TTS lower so that everything fits onto one GPU.
+If you want to run Unmute on a single GPU, replace `docker-compose.yml` with `docker-compose-single-gpu.yml` in the command above.
+That configuration file uses Gemma 3 4B instead of Mistral Small 24B.
+Make sure to adjust the `batch_size` to 2 in the STT and TTS config, see above.
+
+With this setup, you need around 41 GB of GPU memory,
+of which 5 GB goes to the TTS, 3 GB to STT and 33 to the LLM.
+You can likely fit everything onto an even smaller GPU by adjusting the vLLM settings.
+
+We benchmarked on a single L40S GPU:
+The TTS latency increases from ~450ms (on [Unmute.sh](https://unmute.sh/)) to ~750ms.
+The vLLM time-to-first token _decreases_ from ~200ms (on [Unmute.sh](https://unmute.sh/)) because we use a much smaller LLM in the single-GPU setup.
 
 ### Running without Docker
 
