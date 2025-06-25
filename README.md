@@ -64,6 +64,11 @@ and [for the text-to-speech](services/moshi-server/tts-py.toml) have a high batc
 If you're just running Unmute for a single user, go to the two configuration files and change `batch_size` to 2.
 Using 2 instead of 1 will prevent issues with hitting the server capacity if you reconnect very quickly.
 
+Open `docker-compose.yml` and look for `NOTE:` comments to see other places that you might need to adjust.
+
+If you use [google/gemma-3-4b-it](https://huggingface.co/google/gemma-3-4b-it),
+the default in `docker-compose.yml`, 16GB of GPU memory is sufficient.
+
 On a machine with a GPU, run:
 
 ```bash
@@ -73,14 +78,12 @@ echo $HUGGING_FACE_HUB_TOKEN  # This should print hf_...something...
 docker compose -f docker-compose.yml up
 ```
 
-We benchmarked on a single L40S GPU:
-The TTS latency increases from ~450ms (on [Unmute.sh](https://unmute.sh/)) to ~750ms.
-The vLLM time-to-first token _decreases_ from ~200ms (on [Unmute.sh](https://unmute.sh/)) because we use a much smaller LLM.
-
 #### Using multiple GPUs
 
 On [Unmute.sh](https://unmute.sh/), we run the speech-to-text, text-to-speech, and the VLLM server on separate GPUs,
 which improves the latency compared to a single-GPU setup.
+The TTS latency decreases from ~750ms when running everything on a single L40S GPU to around ~450ms on [Unmute.sh](https://unmute.sh/).
+
 If you have at least three GPUs available, add this snippet to the `stt`, `tts` and `llm` services to ensure they are run on separate GPUs:
 
 ```yaml
