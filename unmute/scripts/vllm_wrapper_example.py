@@ -19,7 +19,7 @@ async def main(server_url: str):
         {"role": "system", "content": "You are a helpful assistant."},
         {
             "role": "user",
-            "content": f"Write a {200} word essay on 'bear vs shark'. "
+            "content": "Write a 200 word essay on 'bear vs shark'. "
             "The first line is a 2-3 word title with an emoji and then include "
             "2 line breaks. For example 'TITLE <emoji> \n \n ' ",
         },

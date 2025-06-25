@@ -7,7 +7,8 @@ services:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
 
-      # EntryPoint for HTTP only
+      # This is set up for HTTP. If you want HTTPS support for production, use Docker Swarm
+      # (check out swarm-deploy.yml) or ask ChatGPT to modify this file for you.
       - "--entrypoints.web.address=:80"
     ports:
       - "80:80"
@@ -99,7 +100,8 @@ services:
     command:
       [
         # NOTE: Change the LLM here if you want.
-        "--model=google/gemma-3-1b-it",
+        # (caution: gemma-3-1b-it also exists but it's slow on vLLM: https://github.com/vllm-project/vllm/issues/19575)
+        "--model=google/gemma-3-4b-it",
         # NOTE: You can adapt this based on your GPU memory.
         # A higher value takes more memory but supports longer conversations.
         "--max-model-len=2048",
