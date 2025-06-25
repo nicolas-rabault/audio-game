@@ -60,7 +60,12 @@ This model is freely available but requires you to accept the conditions to acce
 
 ### Start Unmute
 
-On a machine with at least 3 GPUs available, run:
+By default, the configuration files [for the speech-to-text](services/moshi-server/stt.toml)
+and [for the text-to-speech](services/moshi-server/tts-py.toml) have a high batch size to allow serving many users simultaneously.
+If you're just running Unmute for a single user, go to the two configuration files and change `batch_size` to 2.
+Using 2 instead of 1 will prevent issues with hitting the server capacity if you reconnect very quickly.
+
+On a machine with a GPU, run:
 
 ```bash
 # Make sure you have the environment variable with the token:
@@ -69,11 +74,27 @@ echo $HUGGING_FACE_HUB_TOKEN  # This should print hf_...something...
 docker compose -f docker-compose.yml up
 ```
 
-### Single GPU?
+We benchmarked on a single L40S GPU:
+The TTS latency increases from ~450ms (on [Unmute.sh](https://unmute.sh/)) to ~750ms.
+The vLLM time-to-first token _decreases_ from ~200ms (on [Unmute.sh](https://unmute.sh/)) because we use a much smaller LLM in the single-GPU setup.
 
-Unmute is meant to be run on multiple GPUs. Running everything (speech-to-text, text-to-speech, and the VLLM server) on the same GPU is possible, but **will result in significantly worse latency**.
-If you plan to run on a single GPU, replace `docker-compose.yml` with `docker-compose-single-gpu.yml` in the command above.
-That configuration file uses Gemma 3 1B instead of Mistral Small 24B, and sets the batch sizes of the STT and TTS lower so that everything fits onto one GPU.
+#### Using multiple GPUs
+
+On [Unmute.sh](https://unmute.sh/), we run the speech-to-text, text-to-speech, and the VLLM server on separate GPUs.
+This improves the latency compared to a single-GPU setup.
+If you have at least three GPUs available, add this snippet to the `stt`, `tts` and `llm` services to ensure they are run on separate GPUs:
+
+```yaml
+  stt: # Similarly for `tts` and `llm`
+    # ...other configuration
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+```
 
 ### Running without Docker
 
