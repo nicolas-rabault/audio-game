@@ -30,7 +30,7 @@ graph LR
 > [!NOTE]
 > If something isn't working for you, don't hesistate to open an issue. We'll do our best to help you figure out what's wrong.
 
-We provide in this repository multiple ways of deploying your own [unmute.sh](unmute.sh):
+We provide multiple ways of deploying your own [unmute.sh](unmute.sh):
 
 | Name                      | Number of gpus | Number of machines | Difficulty | Documented | Kyutai support |
 |---------------------------|----------------|--------------------|------------|------------|----------------|
@@ -58,6 +58,9 @@ This model is freely available but requires you to accept the conditions to acce
 4. Add the token into your `~/.bashrc` or equivalent as `export HUGGING_FACE_HUB_TOKEN=hf_...your token here...`
 
 ### Start Unmute
+
+Make sure you have [**Docker Compose**](https://docs.docker.com/compose/) installed.
+You'll also need the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) to allow Docker to access your GPU.
 
 By default, the configuration files [for the speech-to-text](services/moshi-server/stt.toml)
 and [for the text-to-speech](services/moshi-server/tts-py.toml) have a high batch size to allow serving many users simultaneously.
@@ -109,7 +112,7 @@ The following instructions only work for Linux and WSL.
 
 * `uv`: Install with `curl -LsSf https://astral.sh/uv/install.sh | sh`
 * `cargo`: Install with `curl https://sh.rustup.rs -sSf | sh`
-* `nvm`: Install with `curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash`
+* `pnpm`: Install with `curl -fsSL https://get.pnpm.io/install.sh | sh -`
 * `cuda 12.1`: Install it with conda or directly from the Nvidia website. Needed for the Rust processes (tts and stt).
 
 #### Hardware requirements

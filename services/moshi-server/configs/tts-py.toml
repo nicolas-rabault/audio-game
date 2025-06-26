@@ -1,5 +1,5 @@
 static_dir = "./static/"
-log_dir = "/logs"
+log_dir = "/home/vaclav/unmute/logs"
 instance_name = "tts"
 authorized_ids = ["public_token"]
 
@@ -7,7 +7,7 @@ authorized_ids = ["public_token"]
 type = "Py"
 path = "/api/tts_streaming"
 text_tokenizer_file = "hf://kyutai/unmute/test_en_fr_audio_8000.model"
-batch_size = 16
+batch_size = 2
 text_bos_token = 1
 
 [modules.tts_py.py]
