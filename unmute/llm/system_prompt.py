@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from unmute.llm.llm_utils import autoselect_model
 from unmute.llm.newsapi import get_news
+from unmute.llm.quiz_show_questions import QUIZ_SHOW_QUESTIONS
 
 _SYSTEM_PROMPT_BASICS = """
 You're in a speech conversation with a human user. Their text is being transcribed using
@@ -59,8 +60,9 @@ This website is unmute dot SH.
 In simple terms, you're a modular AI system that can speak.
 Your system consists of three parts: a speech-to-text model (the "ears"), an LLM (the
 "brain"), and a text-to-speech model (the "mouth").
-The LLM model is "{model_name}", and the TTS and STT are by Kyutai, the developers of unmute dot SH.
-They will soon open-source the TTS and STT.
+The LLM model is "{llm_name}", and the TTS and STT are by Kyutai, the developers of unmute dot SH.
+The STT is already open-source and available on kyutai dot org,
+and they will soon open-source the TTS too.
 
 # WHO MADE YOU
 Kyutai is an AI research lab based in Paris, France.
@@ -87,6 +89,11 @@ LANGUAGE_CODE_TO_INSTRUCTIONS: dict[LanguageCode | None, str] = {
 }
 
 
+def get_readable_llm_name():
+    model = autoselect_model()
+    return model.replace("-", " ").replace("_", " ")
+
+
 class ConstantInstructions(BaseModel):
     type: Literal["constant"] = "constant"
     text: str = _DEFAULT_ADDITIONAL_INSTRUCTIONS
@@ -97,7 +104,7 @@ class ConstantInstructions(BaseModel):
             _SYSTEM_PROMPT_BASICS=_SYSTEM_PROMPT_BASICS,
             additional_instructions=self.text,
             language_instructions=LANGUAGE_CODE_TO_INSTRUCTIONS[self.language],
-            model_name=autoselect_model(),
+            llm_name=get_readable_llm_name(),
         )
 
 
@@ -162,7 +169,7 @@ class SmalltalkInstructions(BaseModel):
             _SYSTEM_PROMPT_BASICS=_SYSTEM_PROMPT_BASICS,
             additional_instructions=additional_instructions,
             language_instructions=LANGUAGE_CODE_TO_INSTRUCTIONS[self.language],
-            model_name=autoselect_model(),
+            llm_name=get_readable_llm_name(),
         )
 
 
@@ -236,7 +243,7 @@ class GuessAnimalInstructions(BaseModel):
             _SYSTEM_PROMPT_BASICS=_SYSTEM_PROMPT_BASICS,
             additional_instructions=additional_instructions,
             language_instructions=LANGUAGE_CODE_TO_INSTRUCTIONS[self.language],
-            model_name=autoselect_model(),
+            llm_name=get_readable_llm_name(),
         )
 
 
@@ -260,47 +267,6 @@ in the first message! Then end the conversation by putting "Bye!" at the end of 
 message.
 """
 
-QUIZ_SHOW_QUESTIONS: list[tuple[str, str]] = [
-    # https://www.mentimeter.com/blog/meetings/quiz-questions
-    ("Where would you be if you were standing on the Spanish Steps?", "Rome"),
-    ('What city is known as "The Eternal City"?', "Rome"),
-    ("In which country would you find Mount Kilimanjaro?", "Tanzania"),
-    ("True or false: Halloween originated as an ancient Irish festival.", "True"),
-    ("What is the largest Spanish-speaking city in the world?", "Mexico City"),
-    ("Which country has the most islands?", "Sweden (270,000)"),
-    (
-        "In Australia, what is commonly known as a bottle-o?",
-        "An off-license/liquor store",
-    ),
-    (
-        "In which U.S. state is the country's busiest airport located?",
-        "Georgia (Hartsfield-Jackson Atlanta International Airport)",
-    ),
-    ("Which is the only continent with land in all four hemispheres?", "Africa"),
-    ("Which river flows through the Grand Canyon?", "Colorado River"),
-    ("Where is Angel Falls, the world’s largest waterfall, located?", "Venezuela"),
-    ("What is the state capital of New York?", "Albany"),
-    ("On which continent would you find the world’s largest desert?", "Antarctica"),
-    ("What is the capital of Ireland?", "Dublin"),
-    ("What is the smallest U.S. state by area?", "Rhode Island"),
-    ("What is the tallest type of tree?", "Redwood"),
-    ("True or false: Holland is a region in The Netherlands?", "True"),
-    ("What are the five Great Lakes?", "Superior, Michigan, Huron, Erie, and Ontario"),
-    ("How many European capitals does the Danube flow through?", "4"),
-    ("What's the capital of Bulgaria?", "Sofia"),
-    ("What is the capital of Canada?", "Ottawa"),
-    ("In what capital would you find The Little Mermaid statue?", "Copenhagen"),
-    ("On which continent would you find the city of Baku?", "Asia"),
-    ("What is the only flag that does not have four sides?", "Nepal"),
-    ("How many stars are on the Chinese flag?", "5"),
-    ("How many colors are used in the South African flag?", "6"),
-    ("What colors is the flag of the United Nations?", "Blue and white"),
-    ("What country features a shipwreck on its national flag?", "Bermuda"),
-    ("In what country is the Chernobyl nuclear plant located?", "Ukraine"),
-    ("Which is the only sea without any coastlines?", "The Sargasso Sea"),
-    ("What mountain range separates Europe and Asia?", "The Ural Mountains"),
-]
-
 
 class QuizShowInstructions(BaseModel):
     type: Literal["quiz_show"] = "quiz_show"
@@ -320,7 +286,7 @@ class QuizShowInstructions(BaseModel):
             _SYSTEM_PROMPT_BASICS=_SYSTEM_PROMPT_BASICS,
             additional_instructions=additional_instructions,
             language_instructions=LANGUAGE_CODE_TO_INSTRUCTIONS[self.language],
-            model_name=autoselect_model(),
+            llm_name=get_readable_llm_name(),
         )
 
 
@@ -367,7 +333,7 @@ class NewsInstructions(BaseModel):
                 timezone=datetime.datetime.now().astimezone().tzname(),
             ),
             language_instructions=LANGUAGE_CODE_TO_INSTRUCTIONS[self.language],
-            model_name=autoselect_model(),
+            llm_name=get_readable_llm_name(),
         )
 
 
@@ -382,7 +348,8 @@ If there is a question to which you don't know the answer, it's ok to say you do
 If there is some confusion or surprise, note that you're an LLM and might make mistakes.
 
 Here is Kyutai's statement about Unmute:
-Talk to Unmute, the most modular voice AI around. Empower any text LLM with voice, instantly, by wrapping it with our new speech-to-text and text-to-speech. Any personality, any voice. We'll open-source everything within the next few weeks.
+Talk to Unmute, the most modular voice AI around. Empower any text LLM with voice, instantly, by wrapping it with our new speech-to-text and text-to-speech. Any personality, any voice.
+The speech-to-text is already open-source (check kyutai dot org) and we'll open-source the rest within the next few weeks.
 
 “But what about Moshi?” Last year we unveiled Moshi, the first audio-native model. While Moshi provides unmatched latency and naturalness, it doesn't yet match the extended abilities of text models such as function-calling, stronger reasoning capabilities, and in-context learning. Unmute allows us to directly bring all of these from text to real-time voice conversations.
 
@@ -401,7 +368,7 @@ class UnmuteExplanationInstructions(BaseModel):
             _SYSTEM_PROMPT_BASICS=_SYSTEM_PROMPT_BASICS,
             additional_instructions=UNMUTE_EXPLANATION_INSTRUCTIONS,
             language_instructions=LANGUAGE_CODE_TO_INSTRUCTIONS["en"],
-            model_name=autoselect_model(),
+            llm_name=get_readable_llm_name(),
         )
 
 
