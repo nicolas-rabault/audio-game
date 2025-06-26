@@ -45,7 +45,7 @@ const DonationConsent = ({
           className="mt-1.5"
         />
         <span>
-          I am of legal age (18 years or older) in my country of residence and I
+          I am at least 18 years old, I am also of legal age in my country of residence and I
           have read and I agree with Kyutai’s{" "}
           <GreenLink href="/voice-donation/terms-of-use">Terms</GreenLink> and{" "}
           <GreenLink href="/voice-donation/privacy-policy">
