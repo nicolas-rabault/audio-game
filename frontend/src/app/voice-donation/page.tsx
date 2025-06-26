@@ -116,6 +116,8 @@ export default function VoiceDonation() {
     );
   }
 
+  const validEmail = isValidEmail(email);
+
   return (
     <div className="w-full min-h-screen flex justify-center bg-background">
       <ErrorMessages errors={errors} setErrors={setErrors} />
@@ -137,8 +139,16 @@ export default function VoiceDonation() {
                   .
                 </p>
                 <p>
-                  Please save it now because it will not be shown again. You can
-                  use this identifier to find your voice later.{" "}
+                  You can use this identifier to find your voice later. It will
+                  not be shown again, please save it now. Alternatively, you can
+                  contact us at unmute@kyutai.org about your donation, see our{" "}
+                  <Link
+                    href="/voice-donation/privacy-policy"
+                    className="underline text-green"
+                  >
+                    Privacy Policy
+                  </Link>{" "}
+                  for more details.
                 </p>
                 <p>
                   <Link href={"/"} className="underline">
@@ -189,6 +199,11 @@ export default function VoiceDonation() {
                     onChange={(e) => setEmail(e.target.value)}
                     className="border px-2 py-1 bg-gray text-white"
                   />
+                  {!validEmail && email && (
+                    <span className="text-red text-sm">
+                      Please enter a valid email address.
+                    </span>
+                  )}
                 </label>
                 <label className="flex flex-col gap-1">
                   (Optional) Preferred nickname for the voice if published:
@@ -202,7 +217,7 @@ export default function VoiceDonation() {
                 <DonationConsent setConsentGiven={setConsentGiven} />
                 <SlantedButton
                   kind={
-                    consentGiven && email && uploadState === "not_started"
+                    consentGiven && validEmail && uploadState === "not_started"
                       ? "primary"
                       : "disabled"
                   }
@@ -217,4 +232,9 @@ export default function VoiceDonation() {
       </div>
     </div>
   );
+}
+
+function isValidEmail(email: string): boolean {
+  // Basic email regex for validation
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 }
