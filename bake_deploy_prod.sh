@@ -21,5 +21,5 @@ export DOCKER_HOST=ssh://root@${DOMAIN}
 
 echo "If you get an connection error, do: ssh root@${DOMAIN}"
 
-docker buildx bake -f ./swarm-deploy.yml --allow=ssh --push
+docker buildx bake -f ./swarm-deploy.yml --push
 docker stack deploy --with-registry-auth --prune --compose-file ./swarm-deploy.yml llm-wrapper

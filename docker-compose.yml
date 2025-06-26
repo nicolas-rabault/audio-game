@@ -59,10 +59,6 @@ services:
     command: ["worker", "--config", "configs/tts-py.toml"]
     build:
       context: services/moshi-server
-      ssh:
-        - default
-      args:
-        GITHUB_ORG: $GITHUB_ORG
     environment:
       - HUGGING_FACE_HUB_TOKEN=$HUGGING_FACE_HUB_TOKEN
     volumes:
@@ -79,10 +75,6 @@ services:
     command: ["worker", "--config", "configs/stt.toml"]
     build:
       context: services/moshi-server
-      ssh:
-        - default
-      args:
-        GITHUB_ORG: $GITHUB_ORG
     environment:
       - HUGGING_FACE_HUB_TOKEN=$HUGGING_FACE_HUB_TOKEN
     volumes:

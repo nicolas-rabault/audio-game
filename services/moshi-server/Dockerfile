@@ -20,14 +20,6 @@ ENV PATH="/root/.cargo/bin:$PATH"
 
 COPY --from=ghcr.io/astral-sh/uv:0.7.2 /uv /uvx /bin/
 
-ARG GITHUB_ORG
-RUN --mount=type=ssh \
-    mkdir -p ~/.ssh && \
-    ssh-keyscan github.com >> ~/.ssh/known_hosts && \
-    git clone git@github.com:${GITHUB_ORG}/moshi-rs.git /app \
-    && cd /app \
-    && git checkout 155eaceb39bc37181f4d2ddc08327532b81155d8
-
 WORKDIR /app
 
 # When starting the container for the first time, we need to compile and download
