@@ -23,6 +23,7 @@ export default function VoiceDonation() {
     null
   );
   const [consentGiven, setConsentGiven] = useState(false);
+  const [email, setEmail] = useState("");
   const [nickname, setNickname] = useState("");
 
   const [uploadState, setUploadState] = useState<
@@ -77,6 +78,7 @@ export default function VoiceDonation() {
     formData.append("file", recordedAudio.file);
 
     const metadata = {
+      email: email,
       nickname: nickname,
       verification_id: verification?.id || null,
     };
@@ -179,6 +181,16 @@ export default function VoiceDonation() {
             {recordedAudio && (
               <div className="flex flex-col gap-2">
                 <label className="flex flex-col gap-1">
+                  Email to contact you if needed, or if you choose to withdraw
+                  (not published):
+                  <input
+                    type="text"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="border px-2 py-1 bg-gray text-white"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
                   (Optional) Preferred nickname for the voice if published:
                   <input
                     type="text"
@@ -190,11 +202,10 @@ export default function VoiceDonation() {
                 <DonationConsent setConsentGiven={setConsentGiven} />
                 <SlantedButton
                   kind={
-                    consentGiven && uploadState === "not_started"
+                    consentGiven && email && uploadState === "not_started"
                       ? "primary"
                       : "disabled"
                   }
-                  disabled={!consentGiven}
                   onClick={handleSubmit}
                 >
                   {uploadState === "uploading" ? "Uploading..." : "Submit"}
