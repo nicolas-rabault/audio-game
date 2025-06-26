@@ -12,6 +12,85 @@ type VoiceDonationVerification = {
   created_at_timestamp: number; // Seconds since epoch
 };
 
+const introductionText = () => {
+  return (
+    <>
+      <p>
+        Here you can donate a short recording of your voice in the context of
+        our Unmute Voice Donation Project, an{" "}
+        <span className="text-green">
+          open-source text-to-speech initiative
+        </span>
+        . We are looking for pre-made voices to include alongside the
+        open-source release of the Kyutai TTS (coming soon). By sharing a short
+        recording of your voice, you help Kyutai to:
+        <ul className="mt-2">
+          <li className="ml-6 list-disc">
+            Build open vocal datasets that anyone can access and reuse.
+          </li>
+          <li className="ml-6 list-disc">
+            Develop and improve Kyutai’s open-science text-to-speech (TTS)
+            models, which convert written text into spoken words.
+          </li>
+        </ul>
+      </p>
+      <p>
+        We value your privacy and transparency. Before proceeding, please review
+        the following carefully:
+      </p>
+      <ul>
+        <li className="ml-6 list-disc">
+          Your voice recordings and data including voice embeddings
+          (representations of vocal characteristics) may be collected,
+          processed, and published openly by Kyutai. The resulting datasets will
+          be publicly available under the Creative Commons CC0 license or any
+          similar open-source license, allowing anyone to freely reuse them,
+          subject to their compliance and with our Acceptable Use Policy.
+        </li>
+        <li className="ml-6 list-disc">
+          Your voice may be made available for use with Kyutai Text-To-Speech.
+          As a result, third parties could generate synthetic speech that
+          closely resembles your voice. After public release, each third-party
+          user will be directly responsible for its own use of your voice
+          recording. If you do not want people to reuse your voice and reproduce
+          it, you should not submit your voice recording.
+        </li>
+      </ul>
+      <p></p>
+      <p>
+        If you do not want people to reuse your voice and reproduce it, you
+        should not submit your voice recording.
+      </p>
+      <p>
+        <strong>
+          Be aware that donating your voice means that users of our TTS will be
+          able to use your voice to say anything.
+        </strong>{" "}
+        The voice recording is not linked to your personal information in any
+        way, but of course, it can still be possible to recognize you by the
+        voice.
+      </p>
+      <h2 className="text-xl strong mt-4">Verification</h2>
+      <div className="w-full flex flex-row">
+        <div className="border-1 border-green p-2 text-center">
+          Verification sentences
+        </div>
+        <div className="border-1 border-green p-2 text-center grow-2">
+          Whatever you want (last 10 seconds will be used)
+        </div>
+      </div>
+      <p>
+        To verify that this is your voice and not a pre-recorded sample, we will
+        ask you to read a short text out loud. Afterwards, you can say whatever
+        you want. Have fun with it! The TTS is good at reproducing the tone and
+        mannerisms of the voice. The last 10 seconds of your recording will be
+        used as the voice sample. Try to use the same tone throughout the
+        recording to make it easier to verify that it&apos;s you.
+      </p>
+    </>
+  );
+};
+
 export default function VoiceDonation() {
   const [errors, setErrors] = useState<ErrorItem[]>([]);
   const backendServerUrl = useBackendServerUrl();
@@ -147,57 +226,7 @@ export default function VoiceDonation() {
         )}
         {uploadState !== "finished" && (
           <>
-            <p>
-              Here you can anonymously donate your voice to be used for voice
-              cloning by Kyutai&apos;s{" "}
-              <span className="text-green">
-                open-science text-to-speech model
-              </span>
-              . We are looking for pre-made voices to include alongside the
-              open-source release of the Kyutai TTS (coming soon).
-            </p>
-            <p>
-              The voice embedding and/or voice sample will be stored by Kyutai
-              and may be released anonymously under the{" "}
-              <Link
-                href="https://creativecommons.org/publicdomain/zero/1.0/"
-                className="underline "
-                target="_blank"
-                rel="noopener"
-              >
-                CC0 license
-              </Link>
-              . We may also decide not to release the voice.{" "}
-            </p>
-            <p>
-              <strong>
-                Be aware that donating your voice means that users of our TTS
-                will be able to use your voice to say anything.
-              </strong>{" "}
-              The voice recording is not linked to your personal information in
-              any way, but of course, it can still be possible to recognize you
-              by the voice.
-            </p>
-            <h2 className="text-xl strong mt-4">Verification</h2>
-            <div className="w-full flex flex-row">
-              <div className="border-1 border-green p-2 text-center">
-                Verbal consent
-              </div>
-              <div className="border-1 border-green p-2 text-center">
-                Verification sentences
-              </div>
-              <div className="border-1 border-green p-2 text-center grow-2">
-                Whatever you want (last 10 seconds will be used)
-              </div>
-            </div>
-            <p>
-              To verify that this is your voice, we will ask you to read a short
-              text out loud. Afterwards, you can say whatever you want. Have fun
-              with it! The TTS is good at reproducing the tone and mannerisms of
-              the voice. The last 10 seconds of your recording will be used as
-              the voice sample. Try to use the same tone throughout the
-              recording to make it easier to verify that it&apos;s you.
-            </p>
+            {introductionText()}
             {!recordedAudio && (
               <p>
                 You&apos;ll have the chance to listen to your recording before
