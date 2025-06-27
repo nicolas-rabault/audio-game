@@ -63,7 +63,7 @@ Make sure you have [**Docker Compose**](https://docs.docker.com/compose/) instal
 You'll also need the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) to allow Docker to access your GPU.
 
 By default, the configuration files [for the speech-to-text](services/moshi-server/stt.toml)
-and [for the text-to-speech](services/moshi-server/tts-py.toml) have a high batch size to allow serving many users simultaneously.
+and [for the text-to-speech](services/moshi-server/tts.toml) have a high batch size to allow serving many users simultaneously.
 If you're just running Unmute for a single user, go to the two configuration files and change `batch_size` to 2.
 Using 2 instead of 1 will prevent issues with hitting the server capacity if you reconnect very quickly.
 

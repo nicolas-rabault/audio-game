@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.."
 export CXXFLAGS="-include cstdint"
 
 cargo install --features cuda moshi-server@0.6.1
-moshi-server worker --config services/moshi-server/configs/tts-py.toml --port 8089
+moshi-server worker --config services/moshi-server/configs/tts.toml --port 8089
 
 
 # cd ../moshi-rs
