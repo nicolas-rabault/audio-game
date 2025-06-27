@@ -71,6 +71,13 @@ services:
       - ./volumes/uv-cache:/root/.cache/uv
       - /tmp/models/:/models
       - ./volumes/tts-logs:/logs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 
   stt:
     image: moshi-server:latest
@@ -91,6 +98,13 @@ services:
       - ./volumes/uv-cache:/root/.cache/uv
       - /tmp/models/:/models
       - ./volumes/stt-logs:/logs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 
   llm:
     image: vllm/vllm-openai:v0.9.1
@@ -105,13 +119,21 @@ services:
         "--dtype=bfloat16",
         # NOTE: Change this based on your GPU memory.
         # A higher value can make inference faster.
-        "--gpu-memory-utilization=0.8",
+        "--gpu-memory-utilization=0.3",
       ]
     volumes:
       - ./volumes/huggingface-cache:/root/.cache/huggingface"
       - ./volumes/vllm-cache:/root/.cache/vllm
     environment:
       - HUGGING_FACE_HUB_TOKEN=$HUGGING_FACE_HUB_TOKEN
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
 
 networks:
   default:
