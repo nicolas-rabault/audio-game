@@ -138,6 +138,7 @@ services:
         GITHUB_ORG: $GITHUB_ORG     # Only needed for staging
     environment:
       # Env variables are grabbed from the environment of the Docker CLI, so the user deploying.
+      # For security reasons, use a read-only Hugging Face token.
       - HUGGING_FACE_HUB_TOKEN=$HUGGING_FACE_HUB_TOKEN
       - HF_TOKEN=$HUGGING_FACE_HUB_TOKEN
     volumes:
@@ -181,6 +182,7 @@ services:
     image: rg.fr-par.scw.cloud/namespace-unruffled-tereshkova/${DOMAIN}-moshi-server:latest
     command: ["worker", "--config", "configs/stt.toml"]
     environment:
+      - HUGGING_FACE_HUB_TOKEN=$HUGGING_FACE_HUB_TOKEN
       - HF_TOKEN=$HUGGING_FACE_HUB_TOKEN
     volumes:
       - cargo-registry:/root/.cargo/registry
@@ -219,6 +221,7 @@ services:
     image: rg.fr-par.scw.cloud/namespace-unruffled-tereshkova/${DOMAIN}-moshi-server:latest
     command: ["worker", "--config", "configs/voice-cloning.toml"]
     environment:
+      - HUGGING_FACE_HUB_TOKEN=$HUGGING_FACE_HUB_TOKEN
       - HF_TOKEN=$HUGGING_FACE_HUB_TOKEN
     volumes:
       - cargo-registry:/root/.cargo/registry
