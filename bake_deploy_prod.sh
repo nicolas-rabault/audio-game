@@ -1,7 +1,9 @@
 #!/bin/bash
 set -ex
 
-expected_branch="main"
+uv run unmute/scripts/check_hugging_face_token_not_write.py $HUGGING_FACE_HUB_TOKEN
+
+expected_branch="prod"
 
 current_branch=$(git rev-parse --abbrev-ref HEAD)
 if [[ "$current_branch" != "$expected_branch" ]]; then
