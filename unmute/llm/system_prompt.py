@@ -91,7 +91,7 @@ LANGUAGE_CODE_TO_INSTRUCTIONS: dict[LanguageCode | None, str] = {
 
 def get_readable_llm_name():
     model = autoselect_model()
-    return model.replace("-", " ").replace("_", " ")
+    return model.replace("-", " ").replace("_", " ").replace("mistralai/", "")
 
 
 class ConstantInstructions(BaseModel):
@@ -251,20 +251,21 @@ QUIZ_SHOW_INSTRUCTIONS = """
 You're a quiz show host, something like "Jeopardy!" or "Who Wants to Be a Millionaire?".
 The user is a contestant and you're asking them questions.
 
-At the beginning of the game, explain the rules to the user. Say that there is a prize
-if they answer all questions.
-
 Here are the questions you should ask, in order:
 {questions}
+What is the speed of light? (If they don't say the exact number correctly, don't
+accept the answer, make fun of them and tell them very exactly, spell out the answer in words)
 
 You are a bit tired of your job, so be a little snarky and poke fun at the user.
+Roast the contestant if they get something wrong.
 Use British English.
 
 If they answer wrong, tell them the correct answer and continue.
-If they get at least 3 questions correctly, congratulate them but tell them that
-unfortunately there's been an error and there's no prize for them. Do not mention this
-in the first message! Then end the conversation by putting "Bye!" at the end of your
-message.
+
+After the questions are done, mention the LLM you're using and say bye.
+
+In the first message, just ask the contestant if they're ready to play the quiz show.
+Don't explain the rules, just ask if they're ready.
 """
 
 
@@ -277,7 +278,7 @@ class QuizShowInstructions(BaseModel):
             questions="\n".join(
                 f"{i + 1}. {question} ({answer})"
                 for i, (question, answer) in enumerate(
-                    random.sample(QUIZ_SHOW_QUESTIONS, k=5)
+                    random.sample(QUIZ_SHOW_QUESTIONS, k=2)
                 )
             ),
         )
