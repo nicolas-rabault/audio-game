@@ -35,7 +35,7 @@ export const DEFAULT_UNMUTE_CONFIG: UnmuteConfig = {
     type: "smalltalk",
     language: "en/fr",
   },
-  voice: "barack_demo.wav",
+  voice: "some-non-existent-voice.wav", // The TTS falls back to a default voice if the file doesn't exist, like in this case
   voiceName: "Missing voice",
   isCustomInstructions: false,
 };

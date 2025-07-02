@@ -13,9 +13,9 @@ graph LR
     UB[User browser] --> T((Traefik))
     T --> B(Backend)
     T --> F(Frontend)
-    B --> STT(Speech-to-text)
-    B --> LLM(LLM)
-    B --> TTS(Text-to-speech)
+    B --> STT(Kyutai Speech-To-Text)
+    B --> LLM(Any LLM)
+    B --> TTS(Kyutai Text-To-Speech)
 ```
 
 - The user opens the Unmute website, served by the **frontend**.

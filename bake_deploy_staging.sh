@@ -1,7 +1,9 @@
 #!/bin/bash
-set -ex
+set -e
 
 uv run unmute/scripts/check_hugging_face_token_not_write.py $HUGGING_FACE_HUB_TOKEN
+
+set -x # Show the commands being executed
 
 export DOMAIN=unmute-staging.kyutai.io
 export KYUTAI_LLM_MODEL=google/gemma-3-4b-it
