@@ -63,15 +63,9 @@ This model is freely available but requires you to accept the conditions to acce
 Make sure you have [**Docker Compose**](https://docs.docker.com/compose/) installed.
 You'll also need the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) to allow Docker to access your GPU.
 
-By default, the configuration files [for the speech-to-text](services/moshi-server/stt.toml)
-and [for the text-to-speech](services/moshi-server/tts.toml) have a high batch size to allow serving many users simultaneously.
-If you're just running Unmute for a single user, go to the two configuration files and change `batch_size` to 2.
-Using 2 instead of 1 will prevent issues with hitting the server capacity if you reconnect very quickly.
-
-Open `docker-compose.yml` and look for `NOTE:` comments to see other places that you might need to adjust.
-
-If you use [google/gemma-3-4b-it](https://huggingface.co/google/gemma-3-4b-it),
+If you use [meta-llama/Llama-3.2-1B](https://huggingface.co/meta-llama/Llama-3.2-1B),
 the default in `docker-compose.yml`, 16GB of GPU memory is sufficient.
+If you're running into memory issues, open `docker-compose.yml` and look for `NOTE:` comments to see places that you might need to adjust.
 
 On a machine with a GPU, run:
 
