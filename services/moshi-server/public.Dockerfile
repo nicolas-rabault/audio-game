@@ -34,4 +34,4 @@ ENV RUST_BACKTRACE=1
 
 COPY . .
 
-ENTRYPOINT ["uv", "run", "--locked", "--project", "./moshi-server-public", "./start_moshi_server_public.sh"]
+ENTRYPOINT ["uv", "run", "--locked", "--project", "./moshi-server", "./start_moshi_server_public.sh"]

@@ -53,7 +53,7 @@ services:
       - "prometheus-port=80"
 
   tts:
-    image: moshi-server-public:latest
+    image: moshi-server:latest
     command: ["worker", "--config", "configs/tts.toml"]
     build:
       context: services/moshi-server
@@ -79,7 +79,7 @@ services:
               capabilities: [gpu]
 
   stt:
-    image: moshi-server-public:latest
+    image: moshi-server:latest
     command: ["worker", "--config", "configs/stt.toml"]
     build:
       context: services/moshi-server
