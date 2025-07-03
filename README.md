@@ -78,7 +78,7 @@ On a machine with a GPU, run:
 # Make sure you have the environment variable with the token:
 echo $HUGGING_FACE_HUB_TOKEN  # This should print hf_...something...
 
-docker compose up
+docker compose up --build
 ```
 
 #### Using multiple GPUs
