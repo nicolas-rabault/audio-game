@@ -54,8 +54,6 @@ services:
 
   tts:
     image: moshi-server-public:latest
-    # NOTE: For a single user, open tts.toml and change batch_size to 2.
-    # A higher batch size allows you to serve more users at once, but with a higher latency.
     command: ["worker", "--config", "configs/tts.toml"]
     build:
       context: services/moshi-server
@@ -82,8 +80,6 @@ services:
 
   stt:
     image: moshi-server-public:latest
-    # NOTE: For a single user, open stt.toml and change batch_size to 2.
-    # A higher batch size allows you to serve more users at once, but with a higher latency.
     command: ["worker", "--config", "configs/stt.toml"]
     build:
       context: services/moshi-server

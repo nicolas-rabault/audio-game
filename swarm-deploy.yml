@@ -129,7 +129,7 @@ services:
   tts:
     image: rg.fr-par.scw.cloud/namespace-unruffled-tereshkova/${DOMAIN}-moshi-server:latest
     # The command is added to the ENTRYPOINT in the Dockerfile
-    command: ["worker", "--config", "configs/tts.toml"]
+    command: ["worker", "--config", "configs/tts-prod.toml"]
     build:
       context: services/moshi-server
       dockerfile: private.Dockerfile
@@ -181,7 +181,7 @@ services:
 
   stt:
     image: rg.fr-par.scw.cloud/namespace-unruffled-tereshkova/${DOMAIN}-moshi-server:latest
-    command: ["worker", "--config", "configs/stt.toml"]
+    command: ["worker", "--config", "configs/stt-prod.toml"]
     environment:
       - HUGGING_FACE_HUB_TOKEN=$HUGGING_FACE_HUB_TOKEN
       - HF_TOKEN=$HUGGING_FACE_HUB_TOKEN
