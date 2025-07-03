@@ -305,6 +305,7 @@ class TextToSpeech(ServiceWithStartup):
                         )
 
                 elif isinstance(message, TTSTextMessage):
+                    print(message)
                     mt.TTS_RECV_WORDS.inc()
                     if message == TTSTextMessage(
                         type="Text", text="", start_s=0, stop_s=0
@@ -325,15 +326,20 @@ class TextToSpeech(ServiceWithStartup):
                     # By using stop_s instead of start_s, we ensure that anything shown
                     # has already been said, so that if there's an interruption, the
                     # chat history matches what's actually been said.
-                    output_queue.put(message, message.stop_s)
+                    # output_queue.put(message, message.start_s * 0.1)
+                    yield message
 
                 for _, message in output_queue.get_nowait():
+                    print("yielding", message.type)
                     if isinstance(message, TTSAudioMessage):
                         self.received_samples_yielded += len(message.pcm)
 
                     yield message
 
+            print("simply done")
+
         except websockets.ConnectionClosedOK:
+            print("stopped via connectionclosedok")
             pass
         except websockets.ConnectionClosedError:
             if self.shutdown_complete.is_set():
@@ -341,7 +347,10 @@ class TextToSpeech(ServiceWithStartup):
                 # (not sure why) but it's an intentional exit, so don't raise.
                 pass
             else:
+                print("stopped brutally")
                 raise
+
+        print("stopped")
 
         # Empty the queue if the connection is closed - we're releasing the messages
         # in real time, see above.

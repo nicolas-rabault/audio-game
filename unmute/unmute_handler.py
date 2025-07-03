@@ -248,6 +248,7 @@ class UnmuteHandler(AsyncStreamHandler):
 
                 assert isinstance(delta, str)  # make Pyright happy
                 await tts.send(delta)
+                print(f"Sending {delta}")
 
             await self.output_queue.put(
                 # The words include the whitespace, so no need to add it here
@@ -513,6 +514,7 @@ class UnmuteHandler(AsyncStreamHandler):
             audio_started = None
 
             async for message in tts:
+                print("Got", message.type)
                 if audio_started is not None:
                     time_since_start = self.audio_received_sec() - audio_started
                     time_received = tts.received_samples / self.input_sample_rate
