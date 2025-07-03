@@ -1,3 +1,4 @@
+# This is the public-facing version.
 FROM nvidia/cuda:12.1.0-devel-ubuntu22.04 AS base
 
 # Set environment variables to avoid interactive prompts during package installation

@@ -132,6 +132,7 @@ services:
     command: ["worker", "--config", "configs/tts.toml"]
     build:
       context: services/moshi-server
+      dockerfile: private.Dockerfile
       ssh:                          # Only needed for staging
         - default                   # Only needed for staging
       args:                         # Only needed for staging
