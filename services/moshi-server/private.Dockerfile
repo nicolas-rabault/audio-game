@@ -1,3 +1,4 @@
+# This is the Kyutai-internal version.
 FROM nvidia/cuda:12.1.0-devel-ubuntu22.04 AS base
 
 # Set environment variables to avoid interactive prompts during package installation
@@ -26,7 +27,7 @@ RUN --mount=type=ssh \
     ssh-keyscan github.com >> ~/.ssh/known_hosts && \
     git clone git@github.com:${GITHUB_ORG}/moshi-rs.git /app \
     && cd /app \
-    && git checkout cbb6b44e6fcc2464e90b118b37806a9528476371
+    && git checkout 3c4e1696328153c919a6b082118b492deb944e50
 
 WORKDIR /app
 
@@ -41,4 +42,4 @@ ENV RUST_BACKTRACE=1
 
 COPY . .
 
-ENTRYPOINT ["uv", "run", "--locked", "--project", "./moshi-server", "./start_moshi_server.sh"]
+ENTRYPOINT ["uv", "run", "--locked", "--project", "./moshi-server", "./start_moshi_server_private.sh"]
