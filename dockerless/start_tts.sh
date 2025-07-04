@@ -10,7 +10,7 @@ cd "$(dirname "$0")/"
 # A fix for building Sentencepiece on GCC 15, see: https://github.com/google/sentencepiece/issues/1108
 export CXXFLAGS="-include cstdint"
 
-uv venv 
+uv venv
 source .venv/bin/activate
 
 # This env var must be set to get the correct environment for the Rust build.
