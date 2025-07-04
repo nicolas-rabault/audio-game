@@ -27,4 +27,5 @@ cargo install --features cuda moshi-server@0.6.3
 
 # Subtle detail here: We use the full path to `moshi-server` because there is a `moshi-server` binary
 # from the `moshi` Python package. We'll fix this conflict soon.
+# If you have a non-standard installation, you might need to adjust the path.
 uv run --locked --project ./dockerless  ~/.cargo/bin/moshi-server worker --config services/moshi-server/configs/tts.toml --port 8089
