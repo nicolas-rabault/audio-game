@@ -6,6 +6,8 @@ Unmute is a system that allows text LLMs to listen and speak by wrapping them in
 The speech-to-text transcribes what the user says, the LLM generates a response in text, and the text-to-speech reads it out loud.
 Both the STT and TTS are optimized for low latency and the system works with any text LLM you like.
 
+If you want to use Kyutai STT or Kyutai TTS separately, check out [kyutai-labs/delayed-streams-modeling](https://github.com/kyutai-labs/delayed-streams-modeling).
+
 On a high level, it works like this:
 
 ```mermaid
