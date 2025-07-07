@@ -22,6 +22,8 @@ services:
       dockerfile: hot-reloading.Dockerfile
     volumes:
       - ./frontend/src:/app/src
+    environment:
+      - NEXT_PUBLIC_IN_DOCKER=true
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend.rule=PathPrefix(`/`)"
