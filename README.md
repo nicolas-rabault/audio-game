@@ -10,9 +10,9 @@ On a high level, it works like this:
 
 ```mermaid
 graph LR
-    UB[User browser] --> T((Traefik))
-    T --> B(Backend)
-    T --> F(Frontend)
+    UB[User browser]
+    UB --> B(Backend)
+    UB --> F(Frontend)
     B --> STT(Speech-to-text)
     B --> LLM(LLM)
     B --> TTS(Text-to-speech)
@@ -23,20 +23,23 @@ graph LR
   - The backend connects via websocket to the **speech-to-text** server, sending it the audio from the user and receiving back the transcription in real time.
   - Once the speech-to-text detects that the user has stopped speaking and it's time to generate a response, the backend connects to an **LLM** server to retrieve the response. We host our own LLM using [VLLM](https://github.com/vllm-project/vllm), but you could also use an external API like OpenAI or Mistral.
   - As the response is being generated, the backend feeds it to the **text-to-speech** server to read it out loud, and forwards the generated speech to the user.
-- Traefik routes requests to paths under `/api` to the backend and the rest to the frontend.
 
 ## Setup
 
 > [!NOTE]
 > If something isn't working for you, don't hesistate to open an issue. We'll do our best to help you figure out what's wrong.
 
+Requirements:
+- Hardware: a GPU with CUDA support and at least 16 GB memory.
+- OS: Linux, or Windows with WSL. Running on Windows natively is not supported. Neither is running on Mac, see #74.
+
 We provide multiple ways of deploying your own [unmute.sh](unmute.sh):
 
 | Name                      | Number of gpus | Number of machines | Difficulty | Documented | Kyutai support |
 |---------------------------|----------------|--------------------|------------|------------|----------------|
-| Docker compose            | 1+             | 1                  | Very easy  |✅         |✅              |
-| Without Docker            | 1 to 3         | 1 to 5             | Easy       |✅         |✅              |
-| Docker swarm              | 1 to ~100      | 1 to ~100          | Medium     |✅         |❌              |
+| Docker Compose            | 1+             | 1                  | Very easy  |✅         |✅              |
+| Dockerless                | 1 to 3         | 1 to 5             | Easy       |✅         |✅              |
+| Docker Swarm              | 1 to ~100      | 1 to ~100          | Medium     |✅         |❌              |
 
 
 Since Unmute is a complex system with many services that need to be running at the same time, we recommend using [**Docker Compose**](https://docs.docker.com/compose/) to run Unmute.
@@ -66,7 +69,6 @@ To make sure the NVIDIA Container Toolkit is installed correctly, run:
 ```bash
 sudo docker run --rm --runtime=nvidia --gpus all ubuntu nvidia-smi
 ```
-
 
 If you use [meta-llama/Llama-3.2-1B](https://huggingface.co/meta-llama/Llama-3.2-1B),
 the default in `docker-compose.yml`, 16GB of GPU memory is sufficient.
@@ -127,9 +129,67 @@ Start each of the services one by one in a different tmux session or terminal:
 ```
 And the website should be accessible at `http://localhost:3000`.
 
+### Connecting to a remote server running Unmute
+
+If you're running Unmute on a machine that you're accessing over SSH – call it `unmute-box`  – and you'd like to access it from your local computer,
+you'll need to set up [port forwarding](https://www.ssh.com/academy/ssh/tunneling-example).
+
+**For Docker Compose**: By default, our Docker Compose setup runs on port 80.
+To forward port 80 on the remote to port 3333 locally, use:
+
+```bash
+ssh -N -L 3333:localhost:80 unmute-box
+```
+If everything works correctly, this command will simply not output anything and just keep running.
+Then open `localhost:3333` in your browser.
+
+**For Dockerless**: You need to separately forward the backend (port 8000) and frontend (port 3000):
+
+```bash
+ssh -N -L 8000:localhost:8000 -L 3000:localhost:3000 unmute-box
+```
+
+```mermaid
+flowchart LR
+    subgraph Local_Machine [Local Machine]
+        direction TB
+        browser[Browser]
+        browser -. "User opens localhost:3000 in browser" .-> local_frontend[localhost:3000]
+        browser -. "Frontend queries API at localhost:8000" .-> local_backend[localhost:8000]
+    end
+    subgraph Remote_Server [Remote Server]
+        direction TB
+        remote_backend[Backend:8000]
+        remote_frontend[Frontend:3000]
+    end
+    local_backend -- "SSH Tunnel: 8000" --> remote_backend
+    local_frontend -- "SSH Tunnel: 3000" --> remote_frontend
+```
+
+### HTTPS support
+
+For simplicity, we omit HTTPS support from the Docker Compose and Dockerless setups.
+If you want to make the deployment work over the HTTPS, consider using Docker Swarm
+(see [SWARM.md](/SWARM.md)) or ask your favorite LLM how to make the Docker Compose or dockerless setup work over HTTPS.
+
+
+## Production deployment with Docker Swarm
+
+If you're curious to know how we deploy and scale [unmute.sh](https://unmute.sh), take a look at our docs
+on the [Docker Swarm deployment](./SWARM.md).
+
 ## Modifying Unmute
 
 Here are some high-level pointers about how you'd go about making certain changes to Unmute.
+
+### Subtitles and dev mode
+
+Press "S" to turn on subtitles for both the user and the chatbot.
+
+There is also a dev mode that can help debugging, but it's disabled by default.
+Go to `useKeyboardShortcuts.ts` and change `ALLOW_DEV_MODE` to `true`.
+Then press `D` to see a debug view.
+You can add information to the dev mode by modifying `self.debug_dict` in `unmute_handler.py`.
 
 ### Changing characters/voices
 
@@ -166,15 +226,9 @@ a script that we use to benchmark the latency and throughput of Unmute.
 
 This is a common requirement so we would appreciate a contribution to support tool calling in Unmute!
 
-- Look into [how vLLM does tool calling](https://docs.vllm.ai/en/stable/features/tool_calling.html) and modify the vLLM call in `docker-compose.yml` to use approriate arguments.
-- On the Unmute side, modify `_generate_response_task()` in [`unmute/unmute_handler.py`](unmute/unmute_handler.py). Currently, `llm.chat_completion()` yields the words one by one.
-  This will need to be changed to also allow yielding a tool call, and handling that.
-
-## Production deployment with Docker Swarm
-
-If you're curious to know how we deploy and scale [unmute.sh](https://unmute.sh), take a look at our docs
-on the [swarm deployments](./SWARM.md).
-
+The easiest way to integrate tool calling into Unmute would be to do so in a way that's fully invisible to Unmute itself - just make it part of the LLM server.
+See [this comment](https://github.com/kyutai-labs/unmute/issues/77#issuecomment-3035220686) on how this can be achieved.
+You'd need to write a simple server in FastAPI to wrap vLLM but plug in the tool call responses.
 
 ## Developing Unmute
 
