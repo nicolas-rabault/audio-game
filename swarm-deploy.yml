@@ -60,6 +60,8 @@ services:
     image: rg.fr-par.scw.cloud/namespace-unruffled-tereshkova/${DOMAIN}-frontend:latest
     build:
       context: frontend/
+    environment:
+      - NEXT_PUBLIC_BACKEND_URL=http://backend:80/api
     deploy:
       # Having more than one replica is useful for scaling but also to avoid downtime
       # during crashes or updates. Traffic will be load balanced between replicas.
@@ -115,8 +117,8 @@ services:
         - "prometheus-port=80"
       replicas: 16
       update_config:
-        delay: 10s      # wait 10 seconds before updating the next replica
-        parallelism: 3  # update 3 replicas at a time
+        delay: 10s # wait 10 seconds before updating the next replica
+        parallelism: 3 # update 3 replicas at a time
       resources:
         # We set limits to avoid having one container taking down the whole service
         # but we don't set reservations because we do not have enough cpu/memory for this.
@@ -133,10 +135,10 @@ services:
     build:
       context: services/moshi-server
       dockerfile: private.Dockerfile
-      ssh:                          # Only needed for staging
-        - default                   # Only needed for staging
-      args:                         # Only needed for staging
-        GITHUB_ORG: $GITHUB_ORG     # Only needed for staging
+      ssh: # Only needed for staging
+        - default # Only needed for staging
+      args: # Only needed for staging
+        GITHUB_ORG: $GITHUB_ORG # Only needed for staging
     environment:
       # Env variables are grabbed from the environment of the Docker CLI, so the user deploying.
       # For security reasons, use a read-only Hugging Face token.
@@ -243,8 +245,7 @@ services:
 
   llm:
     image: vllm/vllm-openai:v0.9.1
-    command:
-      [
+    command: [
         "--model=${KYUTAI_LLM_MODEL}",
         "--max-model-len=8192",
         "--dtype=bfloat16",
