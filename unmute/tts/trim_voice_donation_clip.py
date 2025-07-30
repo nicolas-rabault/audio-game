@@ -55,16 +55,19 @@ def trim_silence_end(
     raise ValueError("Internal error, no windows above threshold found.")
 
 
-def process_file(in_path: Path):
-    out_path = in_path.with_stem(in_path.stem + "_trimmed")
+def trim_trailing_silence(in_path: Path, out_path: Path | None = None) -> None:
+    if out_path is None:
+        out_path = in_path.with_stem(in_path.stem + "_trimmed")
+
     data, _sr = sphn.read(in_path, sample_rate=SAMPLE_RATE)
-    # Convert to mono immediately
+
     if data.ndim == 2:
         data = np.mean(data, axis=0)
     elif data.ndim == 1:
         pass
     else:
         raise ValueError(f"Unexpected audio shape: {data.shape}")
+
     n_samples = data.shape[0]
     data = trim_silence_end(data)
 
@@ -73,12 +76,14 @@ def process_file(in_path: Path):
         raise ValueError(
             f"Input shorter than 10 seconds: {n_samples / SAMPLE_RATE:.2f}s"
         )
+
     data_last10 = data[-ten_sec_samples:]
     if data_last10.shape[0] < ten_sec_samples:
         raise ValueError(
             "Less than 10 seconds remain after trimming silence: "
             f"{data_last10.shape[0] / SAMPLE_RATE:.2f}s"
         )
+
     sphn.write_wav(out_path, data_last10, SAMPLE_RATE)
     print(f"Wrote {out_path} ({data_last10.shape[0] / SAMPLE_RATE:.2f}s)")
 
@@ -104,7 +109,7 @@ def main():
             print(f"Skipping {in_path} (not a file)")
             continue
         try:
-            process_file(in_path)
+            trim_trailing_silence(in_path)
         except ValueError as e:
             print(f"Error processing {in_path}: {e}")
             continue
