@@ -28,7 +28,7 @@ def trim_silence_end(
         window_size = 1
 
     # Compute moving RMS (root mean square) over the window
-    def moving_rms(x, w):
+    def moving_rms(x: np.ndarray, w: int) -> np.ndarray:
         # Pad with zeros at the end to keep length
         if x.shape[0] < w:
             return np.array([])
