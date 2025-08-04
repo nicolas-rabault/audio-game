@@ -33,7 +33,7 @@ graph LR
 
 Requirements:
 - Hardware: a GPU with CUDA support and at least 16 GB memory.
-- OS: Linux, or Windows with WSL. Running on Windows natively is not supported. Neither is running on Mac, see #74.
+- OS: Linux, or Windows with WSL ([installation instructions](https://ubuntu.com/desktop/wsl)). Running on Windows natively is not supported (see [#84](https://github.com/kyutai-labs/unmute/issues/84)). Neither is running on Mac (see [#74](https://github.com/kyutai-labs/unmute/issues/74)).
 
 We provide multiple ways of deploying your own [unmute.sh](unmute.sh):
 
@@ -104,6 +104,7 @@ If you have at least three GPUs available, add this snippet to the `stt`, `tts` 
               count: 1
               capabilities: [gpu]
 ```
+
 
 ### Running without Docker
 
@@ -203,6 +204,53 @@ System prompts like this are defined in [`unmute/llm/system_prompt.py`](unmute/l
 
 Note that the file is only loaded when the backend starts and is then cached, so if you change something in `voices.yaml`,
 you'll need to restart the backend.
+
+### Using external LLM servers
+
+The Unmute backend can be used with any OpenAI compatible LLM server. By default, the `docker-compose.yml` configures VLLM to enable a fully self-contained, local setup.
+You can modify this file to change to another external LLM, such as an OpenAI server, a local ollama setup, etc.
+
+For ollama, as environment variables for the `unmute-backend` image, replace
+```yaml
+  backend:
+    image: unmute-backend:latest
+    [..]
+    environment:
+      [..]
+       - KYUTAI_LLM_URL=http://llm:8000
+```
+
+with
+```yaml
+  backend:
+    image: unmute-backend:latest
+    [..]
+    environment:
+      [..]
+      - KYUTAI_LLM_URL=http://host.docker.internal:11434
+      - KYUTAI_LLM_MODEL=gemma3
+      - KYUTAI_LLM_API_KEY=ollama
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+```
+This points to your localhost server. Alternatively, for OpenAI, you can use
+```yaml
+  backend:
+    image: unmute-backend:latest
+    [..]
+    environment:
+      [..]
+      - KYUTAI_LLM_URL=https://api.openai.com/v1
+      - KYUTAI_LLM_MODEL=gpt-4.1
+      - KYUTAI_LLM_API_KEY=sk-..
+```
+
+The section for vllm can then be removed, as it is no longer needed:
+```yaml
+  llm:
+    image: vllm/vllm-openai:v0.9.1
+    [..]
+```
 
 ### Swapping the frontend
 
