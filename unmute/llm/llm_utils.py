@@ -128,7 +128,11 @@ def autoselect_model() -> str:
     if KYUTAI_LLM_MODEL is not None:
         return KYUTAI_LLM_MODEL
     openai_client = get_openai_client()
-    client_sync = OpenAI(api_key=openai_client.api_key, base_url=openai_client.base_url)
+    # OpenAI() will complain if the API key is not set, so set a dummy string if it's None.
+    # This still makes sense when using vLLM because it doesn't care about the API key.
+    client_sync = OpenAI(
+        api_key=openai_client.api_key or "EMPTY", base_url=openai_client.base_url
+    )
     models = client_sync.models.list()
     if len(models.data) != 1:
         raise ValueError("There are multiple models available. Please specify one.")
