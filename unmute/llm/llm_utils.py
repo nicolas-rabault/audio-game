@@ -120,7 +120,9 @@ class MistralStream:
 def get_openai_client(
     server_url: str = LLM_SERVER, api_key: str | None = KYUTAI_LLM_API_KEY
 ) -> AsyncOpenAI:
-    return AsyncOpenAI(api_key=api_key, base_url=server_url + "/v1")
+    # AsyncOpenAI() will complain if the API key is not set, so set a dummy string if it's None.
+    # This still makes sense when using vLLM because it doesn't care about the API key.
+    return AsyncOpenAI(api_key=api_key or "EMPTY", base_url=server_url + "/v1")
 
 
 @cache
