@@ -137,6 +137,11 @@ And the website should be accessible at `http://localhost:3000`.
 If you're running Unmute on a machine that you're accessing over SSH – call it `unmute-box`  – and you'd like to access it from your local computer,
 you'll need to set up [port forwarding](https://www.ssh.com/academy/ssh/tunneling-example).
 
+> [!NOTE]
+> If you're running over HTTP and not HTTPS, you'll need to forward the ports even if `http://unmute-box:3000` is accessible directly.
+> This is because browsers usually won't let you use the microphone on HTTP connections except for localhost, for security reasons.
+> See below for HTTPS instructions.
+
 **For Docker Compose**: By default, our Docker Compose setup runs on port 80.
 To forward port 80 on the remote to port 3333 locally, use:
 
