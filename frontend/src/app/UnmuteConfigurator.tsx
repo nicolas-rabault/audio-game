@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import VoiceAttribution from "./VoiceAttribution";
 import SquareButton from "./SquareButton";
 import Modal from "./Modal";
@@ -165,6 +165,19 @@ const UnmuteConfigurator = ({
     fetchVoicesData();
   }, [backendServerUrl, config, setConfig, voices]);
 
+  const onCustomVoiceUpload = useCallback(
+    (name: string) => {
+      setCustomVoiceName(name);
+      setConfig({
+        voice: name,
+        instructions: customInstructions || DEFAULT_UNMUTE_CONFIG.instructions,
+        isCustomInstructions: !!customInstructions,
+        voiceName: "custom",
+      });
+    },
+    [customInstructions, setConfig]
+  );
+
   if (!voices) {
     return (
       <div className="w-full">
@@ -172,16 +185,6 @@ const UnmuteConfigurator = ({
       </div>
     );
   }
-
-  const onCustomVoiceUpload = (name: string) => {
-    setCustomVoiceName(name);
-    setConfig({
-      voice: name,
-      instructions: customInstructions || DEFAULT_UNMUTE_CONFIG.instructions,
-      isCustomInstructions: !!customInstructions,
-      voiceName: "custom",
-    });
-  };
 
   const activeVoice = voices.find(
     (voice) => voice.source.path_on_server === config.voice
