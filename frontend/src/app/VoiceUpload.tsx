@@ -5,6 +5,7 @@ import Modal from "./Modal";
 import SlantedButton from "@/app/SlantedButton";
 import Link from "next/link";
 import VoiceRecorder, { MIC_RECORDING_FILENAME } from "./VoiceRecorder";
+import TrimmedAudioPreview from "./TrimmedAudioPreview";
 
 // Also checked on the backend, see constant of the same name
 const MAX_VOICE_FILE_SIZE_MB = 4;
@@ -151,11 +152,7 @@ const VoiceUpload = ({
         )}
         {file && (
           <>
-            {file.name !== MIC_RECORDING_FILENAME && (
-              <div className="text-sm text-lightgray">
-                Selected file: <strong>{file.name}</strong>
-              </div>
-            )}
+            <TrimmedAudioPreview file={file} />
             <div className="flex flex-row justify-center">
               <SlantedButton kind="secondary" onClick={() => setFile(null)}>
                 Remove
