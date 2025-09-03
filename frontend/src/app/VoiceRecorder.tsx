@@ -31,8 +31,6 @@ const VoiceRecording = ({
   const [recordingProgress, setRecordingProgress] = useState(0);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const [recordedAudioLocal, setRecordedAudioLocal] =
-    useState<RecordedAudio | null>(null);
 
   const handleStartRecording = async () => {
     setError(null);
@@ -80,7 +78,6 @@ const VoiceRecording = ({
           file: audioFile,
         };
         setRecordedAudio(recordedAudio);
-        setRecordedAudioLocal(recordedAudio);
       };
       recorder.start();
       setMediaRecorder(recorder);
@@ -124,11 +121,7 @@ const VoiceRecording = ({
         <div className="w-full flex justify-center">
           <SlantedButton
             onClick={isRecording ? handleStopRecording : handleStartRecording}
-            kind={
-              isRecording || recordedAudioLocal != null
-                ? "secondary"
-                : "primary"
-            }
+            kind={isRecording ? "secondary" : "primary"}
             extraClasses="flex items-center gap-2"
           >
             {isRecording ? (
@@ -154,13 +147,6 @@ const VoiceRecording = ({
             style={{ width: `${recordingProgress * 100}%` }}
           ></div>
         </div>
-      )}
-      {recordedAudioLocal && !isRecording && (
-        <audio
-          controls
-          src={recordedAudioLocal.blobUrl}
-          className="w-full mt-2"
-        />
       )}
     </div>
   );
