@@ -108,7 +108,16 @@ const UnmuteHeader = () => {
             The TTS is streaming both in audio and in text, meaning it can start
             speaking before the entire LLM response is generated. You can use a
             10-second voice sample to determine the TTS{"'"}s voice and
-            intonation.
+            intonation. Check out the{" "}
+            <Link
+              href="https://arxiv.org/pdf/2509.08753"
+              target="_blank"
+              rel="noopener"
+              className="underline text-green"
+            >
+              pre-print
+            </Link>{" "}
+            for details.
           </p>
           <p>
             To stay up to date on our research, follow us on{" "}

@@ -7,6 +7,7 @@ The speech-to-text transcribes what the user says, the LLM generates a response 
 Both the STT and TTS are optimized for low latency and the system works with any text LLM you like.
 
 If you want to use Kyutai STT or Kyutai TTS separately, check out [kyutai-labs/delayed-streams-modeling](https://github.com/kyutai-labs/delayed-streams-modeling).
+A pre-print about the models is available [here](https://arxiv.org/pdf/2509.08753).
 
 On a high level, it works like this:
 
