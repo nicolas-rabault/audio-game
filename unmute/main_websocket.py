@@ -340,9 +340,17 @@ async def _report_websocket_exception(websocket: WebSocket, exc: Exception):
     error_message = None
 
     for exc in exceptions:
-        if isinstance(exc, (MissingServiceAtCapacity, MissingServiceTimeout)):
+        if isinstance(exc, (MissingServiceAtCapacity)):
             mt.FATAL_SERVICE_MISSES.inc()
-            error_message = "Too many people are connected! Please try again later."
+            error_message = (
+                f"Too many people are connected to service '{exc.service}'. "
+                "Please try again later."
+            )
+        elif isinstance(exc, MissingServiceTimeout):
+            mt.FATAL_SERVICE_MISSES.inc()
+            error_message = (
+                f"Service '{exc.service}' timed out. Please try again later."
+            )
         elif isinstance(exc, WebSocketClosedError):
             logger.debug("Websocket was closed.")
         else:
