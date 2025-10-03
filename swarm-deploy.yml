@@ -249,8 +249,9 @@ services:
         "--max-model-len=2048",
         "--dtype=bfloat16",
         "--tokenizer_mode=mistral",  # You can remove those args if you're not using mistral
-        # "--config_format=mistral",
-        # "--load-format=mistral",
+        "--config_format=mistral",
+        "--load-format=mistral",
+        "--gpu-memory-utilization=0.9",
       ]
     healthcheck:
       # The very first time it can be VERY slow, because of the download
