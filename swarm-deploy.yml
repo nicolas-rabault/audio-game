@@ -278,7 +278,7 @@ services:
         - "traefik.http.routers.llm.entrypoints=websecure"
         - "traefik.http.routers.llm.tls=true"
         - "traefik.http.routers.llm.tls.certresolver=letsencrypt_resolver"
-        - "traefik.http.services.llm.loadbalancer.server.port=8080"
+        - "traefik.http.services.llm.loadbalancer.server.port=8000"
         - "traefik.http.routers.llm.priority=100"
       # 4 containers are used, one gpu per container, and the requests end up being load balanced
       # between them. There is no "smart" routing but it's enough for our use case.
