@@ -8,12 +8,18 @@ expected_branch="prod"
 current_branch=$(git rev-parse --abbrev-ref HEAD)
 if [[ "$current_branch" != "$expected_branch" ]]; then
   echo "❌ You are on branch '$current_branch'. Please switch to '$expected_branch' before deploying."
-  exit 1
+  read -p "Continue anyway? [y/N]: " override
+  if [[ ! "$override" =~ ^[Yy]$ ]]; then
+    exit 1
+  fi
 fi
 
 if [[ -n $(git status --porcelain) ]]; then
   echo "❌ You have uncommitted changes. Please commit or stash them before deploying."
-  exit 1
+  read -p "Continue anyway? [y/N]: " override
+  if [[ ! "$override" =~ ^[Yy]$ ]]; then
+    exit 1
+  fi
 fi
 
 set -x # Print commands
