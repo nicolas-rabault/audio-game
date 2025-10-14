@@ -25,13 +25,13 @@ class AudioOutputProcessor extends AudioWorkletProcessor {
     this.initialBufferSamples = 1 * frameSize; // ~160 ms
     // once we have enough samples, we further wait that long before starting to play.
     // This allows to have buffer lengths that are not a multiple of frameSize.
-    this.partialBufferSamples = asSamples(40); // ~40 ms slack to reduce underflows
+    this.partialBufferSamples = asSamples(10); // ~40 ms slack to reduce underflows
     // If the buffer length goes over that many, we will drop the oldest packets until
     // we reach back initialBufferSamples + partialBufferSamples.
     this.maxBufferSamples = asSamples(DEFAULT_MAX_BUFFER_MS);
     // increments
     this.partialBufferIncrement = asSamples(5);
-    this.maxPartialWithIncrements = asSamples(160);
+    this.maxPartialWithIncrements = asSamples(80);
     this.maxBufferSamplesIncrement = asSamples(5);
     this.maxMaxBufferWithIncrements = asSamples(80);
 
