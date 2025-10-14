@@ -24,3 +24,6 @@ certs/
 volumes/
 CLAUDE.md
 .claude/settings.local.json
+
+# runtime logs
+logs/

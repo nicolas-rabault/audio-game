@@ -86,6 +86,12 @@ echo $HUGGING_FACE_HUB_TOKEN  # This should print hf_...something...
 docker compose up --build
 ```
 
+> Note: If your local GPU stack requires running parts of the stack outside Docker (e.g., driver/CUDA compatibility), you can run the speech services natively while keeping the rest in Docker:
+> ```bash
+> ./start_rtx50_services.sh
+> ```
+> This starts TTS on port 8089 and STT on port 8090 locally and points the backend to them.
+
 #### Using multiple GPUs
 
 On [Unmute.sh](https://unmute.sh/), we run the speech-to-text, text-to-speech, and the VLLM server on separate GPUs,
