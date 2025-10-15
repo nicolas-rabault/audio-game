@@ -54,10 +54,14 @@ from unmute.tts.voice_donation import (
     generate_verification,
     submit_voice_donation,
 )
+from unmute.tts.character_loader import CharacterManager
 from unmute.tts.voices import VoiceList
 from unmute.unmute_handler import UnmuteHandler
 
 app = FastAPI()
+
+# Global CharacterManager instance
+_character_manager: CharacterManager | None = None
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -89,6 +93,33 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Load characters from story_characters/ directory at startup."""
+    global _character_manager
+    from pathlib import Path
+
+    _character_manager = CharacterManager()
+    characters_dir = Path(__file__).parents[1] / "story_characters"
+
+    try:
+        result = await _character_manager.load_characters(characters_dir)
+        logger.info(
+            f"Character loading complete: {result.loaded_count}/{result.total_files} files loaded "
+            f"({result.error_count} errors) in {result.load_duration:.2f}s"
+        )
+    except FileNotFoundError as e:
+        logger.warning(f"Character directory not found: {e}. Starting with empty character list.")
+        _character_manager.characters = {}
+
+
+def get_character_manager() -> CharacterManager:
+    """Get the global CharacterManager instance."""
+    if _character_manager is None:
+        raise RuntimeError("CharacterManager not initialized. Call startup_event() first.")
+    return _character_manager
 
 
 @app.get("/")
@@ -200,11 +231,11 @@ async def get_health():
 @app.get("/v1/voices")
 @cache
 def voices():
-    voice_list = VoiceList()
+    character_manager = get_character_manager()
     # Note that `voice.good` is bool | None, here we really take only True values.
     good_voices = [
-        voice.model_dump(exclude={"comment"})
-        for voice in voice_list.voices
+        voice.model_dump(exclude={"comment", "_source_file", "_prompt_generator"})
+        for voice in character_manager.characters.values()
         if voice.good
     ]
     return good_voices

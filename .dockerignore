@@ -1,9 +1,14 @@
 *.egg-info
 *.pyc
+__pycache__/
+*.py[cod]
+*$py.class
 
 debug/
 recordings/
 .venv/
+.env*
+*.log
 
 Dockerfile
 
