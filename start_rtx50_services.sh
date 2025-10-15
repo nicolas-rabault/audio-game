@@ -9,7 +9,7 @@ echo "=========================================="
 echo "RTX 50 Series Service Starter"
 echo "=========================================="
 echo ""
-echo "This script will start the TTS and STT services"
+echo "This script will start the TTS, STT, and Voice Cloning services"
 echo "natively on your system to utilize CUDA 12.9."
 echo ""
 echo "Make sure you have already started Docker Compose"
@@ -68,16 +68,22 @@ echo "Starting STT service on port 8090..."
 ./dockerless/start_stt.sh > logs/stt.log 2>&1 &
 STT_PID=$!
 
+echo "Starting Voice Cloning service on port 8092..."
+./dockerless/start_voice_cloning.sh > logs/voice-cloning.log 2>&1 &
+VOICE_CLONING_PID=$!
+
 echo ""
 echo "=========================================="
 echo "Services started!"
 echo "TTS PID: $TTS_PID"
 echo "STT PID: $STT_PID"
+echo "Voice Cloning PID: $VOICE_CLONING_PID"
 echo "=========================================="
 echo ""
 echo "Logs are being written to:"
 echo "  - TTS: logs/tts.log"
 echo "  - STT: logs/stt.log"
+echo "  - Voice Cloning: logs/voice-cloning.log"
 echo ""
 echo "You can monitor them with:"
 echo "  tail -f logs/tts.log"

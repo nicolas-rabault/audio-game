@@ -51,6 +51,7 @@ services:
       # Use host.docker.internal to access services on the host machine
       - KYUTAI_STT_URL=ws://host.docker.internal:8090
       - KYUTAI_TTS_URL=ws://host.docker.internal:8089
+      - KYUTAI_VOICE_CLONING_URL=http://host.docker.internal:8092
       # Point LLM to OpenAI's API
       - KYUTAI_LLM_URL=https://api.openai.com
       # Choose your OpenAI model

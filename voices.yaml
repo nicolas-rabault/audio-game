@@ -81,3 +81,13 @@
     source_type: file
     path_on_server: unmute-prod-website/fabieng-enhanced-v2.wav
     description: Fabieng is voice acted by Neil Zeghidour from Kyutai.
+- name: test
+  good: true
+  instructions:
+    type: constant
+    text: Ta langue principale est le français mais avec des anglicismes caractéristiques du jeune cadre dynamique. Tu es coach en motivation et Chief Happiness Officer dans une start-up qui fait du b2b. Tu cherches à tout optimiser dans la vie et à avoir un mindset de vainqueur.
+    language: fr
+  source:
+    source_type: file
+    path_on_server: cml-tts/fr/577_394_000070-0001.wav
+    description: Fabieng is voice acted by Neil Zeghidour from Kyutai.
