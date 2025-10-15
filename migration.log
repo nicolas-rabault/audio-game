@@ -1,0 +1,27 @@
+2025-10-15 10:54:25,580 - INFO - ============================================================
+2025-10-15 10:54:25,580 - INFO - Voice Migration Script
+2025-10-15 10:54:25,580 - INFO - ============================================================
+2025-10-15 10:54:25,580 - INFO - YAML file: voices.yaml
+2025-10-15 10:54:25,580 - INFO - Output directory: story_characters
+2025-10-15 10:54:25,580 - INFO - Dry run: False
+2025-10-15 10:54:25,580 - INFO - ============================================================
+2025-10-15 10:54:25,581 - INFO - Reading voices from voices.yaml
+2025-10-15 10:54:25,592 - INFO - Found 9 voices in YAML file
+2025-10-15 10:54:25,592 - INFO - Created: watercooler.py
+2025-10-15 10:54:25,592 - INFO - Created: quiz-show.py
+2025-10-15 10:54:25,592 - INFO - Created: gertrude.py
+2025-10-15 10:54:25,592 - INFO - Created: dev-news.py
+2025-10-15 10:54:25,592 - INFO - Created: explanation.py
+2025-10-15 10:54:25,593 - INFO - Created: charles.py
+2025-10-15 10:54:25,593 - INFO - Created: développeuse.py
+2025-10-15 10:54:25,593 - INFO - Created: fabieng.py
+2025-10-15 10:54:25,593 - INFO - Created: test.py
+2025-10-15 10:54:25,593 - INFO - ============================================================
+2025-10-15 10:54:25,593 - INFO - Migration Summary
+2025-10-15 10:54:25,593 - INFO - ============================================================
+2025-10-15 10:54:25,593 - INFO - Files created: 9
+2025-10-15 10:54:25,593 - INFO - Files skipped: 0
+2025-10-15 10:54:25,593 - INFO - Errors: 0
+2025-10-15 10:54:25,593 - INFO - Migration log: /home/metab/audio-game/migration.log
+2025-10-15 10:54:25,594 - INFO - ============================================================
+2025-10-15 10:54:25,594 - INFO - ✓ Migration completed successfully!

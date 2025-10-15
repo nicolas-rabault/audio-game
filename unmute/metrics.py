@@ -126,3 +126,13 @@ VLLM_GEN_DURATION = Histogram(
 )
 
 VOICE_DONATION_SUBMISSIONS = Counter("worker_voice_donation_submissions", "")
+
+# Character loading metrics
+CHARACTER_LOAD_COUNT = Counter("worker_character_load_count", "Total number of character files successfully loaded")
+CHARACTER_LOAD_ERRORS = Counter("worker_character_load_errors", "Number of character file loading errors", ["error_type"])
+CHARACTER_LOAD_DURATION = Histogram(
+    "worker_character_load_duration",
+    "Time taken to load all character files (seconds)",
+    buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0]
+)
+CHARACTERS_LOADED = Gauge("worker_characters_loaded", "Number of characters currently loaded")

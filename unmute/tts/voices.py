@@ -174,6 +174,23 @@ class VoiceSample(BaseModel):
 
 
 class VoiceList:
+    """
+    DEPRECATED: This class is deprecated in favor of CharacterManager.
+
+    Voice loading has been migrated to use self-contained character files
+    in the story_characters/ directory. Each character is now defined in
+    its own Python file with complete configuration and prompt generation logic.
+
+    Use CharacterManager from unmute.tts.character_loader instead.
+
+    Migration path:
+    1. Run scripts/migrate_voices_yaml.py to convert voices.yaml to character files
+    2. Replace VoiceList usage with CharacterManager
+    3. Characters load automatically at server startup
+
+    This class is maintained for backward compatibility only.
+    """
+
     def __init__(self):
         self.path = Path(__file__).parents[2] / "voices.yaml"
         with self.path.open() as f:

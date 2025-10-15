@@ -25,10 +25,10 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create `story_characters/` directory at repository root
-- [ ] T002 [P] Create `unmute/tts/character_loader.py` module stub for character loading logic
-- [ ] T003 [P] Review existing models in `unmute/tts/voices.py` (VoiceSample, VoiceSource, FileVoiceSource, FreesoundVoiceSource)
-- [ ] T004 [P] Review existing instruction classes in `unmute/llm/system_prompt.py` (ConstantInstructions, SmalltalkInstructions, QuizShowInstructions, NewsInstructions, GuessAnimalInstructions, UnmuteExplanationInstructions)
+- [X] T001 Create `story_characters/` directory at repository root
+- [X] T002 [P] Create `unmute/tts/character_loader.py` module stub for character loading logic
+- [X] T003 [P] Review existing models in `unmute/tts/voices.py` (VoiceSample, VoiceSource, FileVoiceSource, FreesoundVoiceSource)
+- [X] T004 [P] Review existing instruction classes in `unmute/llm/system_prompt.py` (ConstantInstructions, SmalltalkInstructions, QuizShowInstructions, NewsInstructions, GuessAnimalInstructions, UnmuteExplanationInstructions)
 
 ---
 
@@ -38,16 +38,16 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 Add Prometheus metrics to `unmute/metrics.py`: CHARACTER_LOAD_COUNT (counter), CHARACTER_LOAD_ERRORS (counter with error_type label), CHARACTER_LOAD_DURATION (histogram with buckets [0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0]), CHARACTERS_LOADED (gauge)
-- [ ] T006 [P] Implement character file discovery logic in `unmute/tts/character_loader.py` to find all .py files in story_characters/ directory
-- [ ] T007 [P] Implement dynamic module loading using importlib.util.spec_from_file_location in `unmute/tts/character_loader.py`
-- [ ] T008 Implement character file validation (two-phase: structure check for required attributes, then Pydantic validation) in `unmute/tts/character_loader.py`
-- [ ] T009 Implement duplicate name detection with first-loaded-wins logic in `unmute/tts/character_loader.py`
-- [ ] T010 Implement async character loading using asyncio.to_thread() and asyncio.gather() for concurrent file loading in `unmute/tts/character_loader.py`
-- [ ] T011 Create CharacterLoadResult dataclass in `unmute/tts/character_loader.py` with fields: characters dict, total_files, loaded_count, error_count, load_duration
-- [ ] T012 Implement CharacterManager class in `unmute/tts/character_loader.py` with load_characters() async method and get_character() sync method
-- [ ] T013 Add error logging for invalid files (import errors, validation errors, missing attributes, duplicates) in `unmute/tts/character_loader.py`
-- [ ] T014 Emit all Prometheus metrics during character loading in `unmute/tts/character_loader.py`
+- [X] T005 Add Prometheus metrics to `unmute/metrics.py`: CHARACTER_LOAD_COUNT (counter), CHARACTER_LOAD_ERRORS (counter with error_type label), CHARACTER_LOAD_DURATION (histogram with buckets [0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0]), CHARACTERS_LOADED (gauge)
+- [X] T006 [P] Implement character file discovery logic in `unmute/tts/character_loader.py` to find all .py files in story_characters/ directory
+- [X] T007 [P] Implement dynamic module loading using importlib.util.spec_from_file_location in `unmute/tts/character_loader.py`
+- [X] T008 Implement character file validation (two-phase: structure check for required attributes, then Pydantic validation) in `unmute/tts/character_loader.py`
+- [X] T009 Implement duplicate name detection with first-loaded-wins logic in `unmute/tts/character_loader.py`
+- [X] T010 Implement async character loading using asyncio.to_thread() and asyncio.gather() for concurrent file loading in `unmute/tts/character_loader.py`
+- [X] T011 Create CharacterLoadResult dataclass in `unmute/tts/character_loader.py` with fields: characters dict, total_files, loaded_count, error_count, load_duration
+- [X] T012 Implement CharacterManager class in `unmute/tts/character_loader.py` with load_characters() async method and get_character() sync method
+- [X] T013 Add error logging for invalid files (import errors, validation errors, missing attributes, duplicates) in `unmute/tts/character_loader.py`
+- [X] T014 Emit all Prometheus metrics during character loading in `unmute/tts/character_loader.py`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -61,16 +61,16 @@
 
 ### Implementation for User Story 1
 
-- [ ] T015 [US1] Create example character file `story_characters/watercooler.py` with CHARACTER_NAME="Watercooler", VOICE_SOURCE (file type), INSTRUCTIONS (smalltalk type), METADATA, and PromptGenerator class
-- [ ] T016 [US1] Create example character file `story_characters/quiz-show.py` with CHARACTER_NAME="Quiz show", VOICE_SOURCE (freesound type), INSTRUCTIONS (quiz_show type), METADATA, and PromptGenerator class
-- [ ] T017 [US1] Initialize CharacterManager singleton instance at startup in `unmute/main_websocket.py` (load characters from story_characters/ directory using asyncio)
-- [ ] T018 [US1] Update `/v1/voices` endpoint in `unmute/main_websocket.py` to use CharacterManager instead of VoiceList (read from story_characters/)
-- [ ] T019 [US1] Ensure `/v1/voices` endpoint excludes internal fields (_source_file, _prompt_generator) from response in `unmute/main_websocket.py`
-- [ ] T020 [US1] Ensure `/v1/voices` endpoint only returns characters where good=True in `unmute/main_websocket.py`
-- [ ] T021 [US1] Add startup logging to show character load summary (total files, loaded count, error count, duration) in `unmute/main_websocket.py`
-- [ ] T022 [US1] Test that empty story_characters/ directory logs appropriate warning and system starts successfully
-- [ ] T023 [US1] Test that character list API returns all loaded characters with names and metadata
-- [ ] T024 [US1] Verify VoiceSample models from character files include _source_file and _prompt_generator attributes after loading
+- [X] T015 [US1] Create example character file `story_characters/watercooler.py` with CHARACTER_NAME="Watercooler", VOICE_SOURCE (file type), INSTRUCTIONS (smalltalk type), METADATA, and PromptGenerator class
+- [X] T016 [US1] Create example character file `story_characters/quiz-show.py` with CHARACTER_NAME="Quiz show", VOICE_SOURCE (freesound type), INSTRUCTIONS (quiz_show type), METADATA, and PromptGenerator class
+- [X] T017 [US1] Initialize CharacterManager singleton instance at startup in `unmute/main_websocket.py` (load characters from story_characters/ directory using asyncio)
+- [X] T018 [US1] Update `/v1/voices` endpoint in `unmute/main_websocket.py` to use CharacterManager instead of VoiceList (read from story_characters/)
+- [X] T019 [US1] Ensure `/v1/voices` endpoint excludes internal fields (_source_file, _prompt_generator) from response in `unmute/main_websocket.py`
+- [X] T020 [US1] Ensure `/v1/voices` endpoint only returns characters where good=True in `unmute/main_websocket.py`
+- [X] T021 [US1] Add startup logging to show character load summary (total files, loaded count, error count, duration) in `unmute/main_websocket.py`
+- [X] T022 [US1] Test that empty story_characters/ directory logs appropriate warning and system starts successfully
+- [X] T023 [US1] Test that character list API returns all loaded characters with names and metadata
+- [X] T024 [US1] Verify VoiceSample models from character files include _source_file and _prompt_generator attributes after loading
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently. System loads characters from story_characters/ folder and exposes them via /v1/voices API.
 
@@ -84,16 +84,16 @@
 
 ### Implementation for User Story 2
 
-- [ ] T025 [P] [US2] Create example character file `story_characters/gertrude.py` with ConstantInstructions type and custom text in INSTRUCTIONS
-- [ ] T026 [P] [US2] Add validation in `unmute/tts/character_loader.py` to verify PromptGenerator class has __init__(instructions) method
-- [ ] T027 [P] [US2] Add validation in `unmute/tts/character_loader.py` to verify PromptGenerator class has make_system_prompt() method returning string
-- [ ] T028 [US2] Test character with missing required field (CHARACTER_NAME) is rejected with descriptive error logged
-- [ ] T029 [US2] Test character with missing required field (VOICE_SOURCE) is rejected with descriptive error logged
-- [ ] T030 [US2] Test character with missing required field (INSTRUCTIONS) is rejected with descriptive error logged
-- [ ] T031 [US2] Test character with missing PromptGenerator class is rejected with descriptive error logged
-- [ ] T032 [US2] Verify LLM service can call character._prompt_generator(instructions).make_system_prompt() to get system prompt without external dependencies
-- [ ] T033 [US2] Verify TTS service can access character.source.path_on_server (or character.source.url for freesound) from loaded character
-- [ ] T034 [US2] Create example characters for all 6 instruction types: constant, smalltalk, quiz_show, news, guess_animal, unmute_explanation in story_characters/
+- [X] T025 [P] [US2] Create example character file `story_characters/gertrude.py` with ConstantInstructions type and custom text in INSTRUCTIONS
+- [X] T026 [P] [US2] Add validation in `unmute/tts/character_loader.py` to verify PromptGenerator class has __init__(instructions) method
+- [X] T027 [P] [US2] Add validation in `unmute/tts/character_loader.py` to verify PromptGenerator class has make_system_prompt() method returning string
+- [X] T028 [US2] Test character with missing required field (CHARACTER_NAME) is rejected with descriptive error logged
+- [X] T029 [US2] Test character with missing required field (VOICE_SOURCE) is rejected with descriptive error logged
+- [X] T030 [US2] Test character with missing required field (INSTRUCTIONS) is rejected with descriptive error logged
+- [X] T031 [US2] Test character with missing PromptGenerator class is rejected with descriptive error logged
+- [X] T032 [US2] Verify LLM service can call character._prompt_generator(instructions).make_system_prompt() to get system prompt without external dependencies
+- [X] T033 [US2] Verify TTS service can access character.source.path_on_server (or character.source.url for freesound) from loaded character
+- [X] T034 [US2] Create example characters for all 6 instruction types: constant, smalltalk, quiz_show, news, guess_animal, unmute_explanation in story_characters/
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently. Characters are fully self-contained with prompt generation logic inside character files.
 
@@ -107,20 +107,20 @@
 
 ### Implementation for User Story 3
 
-- [ ] T035 [P] [US3] Create migration script stub `scripts/migrate_voices_yaml.py` with command-line argument parsing (--dry-run, --output-dir)
-- [ ] T036 [P] [US3] Implement YAML reading logic in `scripts/migrate_voices_yaml.py` using ruamel.yaml to load voices.yaml
-- [ ] T037 [US3] Create PromptGenerator template mappings in `scripts/migrate_voices_yaml.py` for all 6 instruction types (constant, smalltalk, quiz_show, news, guess_animal, unmute_explanation)
-- [ ] T038 [US3] Implement character file generation logic in `scripts/migrate_voices_yaml.py` that creates .py file with CHARACTER_NAME, VOICE_SOURCE, INSTRUCTIONS, METADATA, and PromptGenerator class
-- [ ] T039 [US3] Implement filename sanitization in `scripts/migrate_voices_yaml.py` (lowercase, spaces to hyphens, .py extension)
-- [ ] T040 [US3] Implement duplicate name handling in `scripts/migrate_voices_yaml.py` (suffix with _2, _3 for duplicates with warning log)
-- [ ] T041 [US3] Add --dry-run mode in `scripts/migrate_voices_yaml.py` that prints generated files without writing to disk
-- [ ] T042 [US3] Add summary logging in `scripts/migrate_voices_yaml.py` (files created, skipped, errors)
-- [ ] T043 [US3] Create migration log file `migration.log` with detailed migration results in `scripts/migrate_voices_yaml.py`
-- [ ] T044 [US3] Test migration script on existing voices.yaml file: verify character count matches
-- [ ] T045 [US3] Test migrated character with type: smalltalk produces file with SmalltalkInstructions in PromptGenerator
-- [ ] T046 [US3] Test migrated character with Freesound voice source preserves URL, license, and description fields
-- [ ] T047 [US3] Test that migrated characters load successfully into the system and function identically to voices.yaml counterparts
-- [ ] T048 [US3] Run migration script on production voices.yaml to generate all character files in story_characters/
+- [X] T035 [P] [US3] Create migration script stub `scripts/migrate_voices_yaml.py` with command-line argument parsing (--dry-run, --output-dir)
+- [X] T036 [P] [US3] Implement YAML reading logic in `scripts/migrate_voices_yaml.py` using ruamel.yaml to load voices.yaml
+- [X] T037 [US3] Create PromptGenerator template mappings in `scripts/migrate_voices_yaml.py` for all 6 instruction types (constant, smalltalk, quiz_show, news, guess_animal, unmute_explanation)
+- [X] T038 [US3] Implement character file generation logic in `scripts/migrate_voices_yaml.py` that creates .py file with CHARACTER_NAME, VOICE_SOURCE, INSTRUCTIONS, METADATA, and PromptGenerator class
+- [X] T039 [US3] Implement filename sanitization in `scripts/migrate_voices_yaml.py` (lowercase, spaces to hyphens, .py extension)
+- [X] T040 [US3] Implement duplicate name handling in `scripts/migrate_voices_yaml.py` (suffix with _2, _3 for duplicates with warning log)
+- [X] T041 [US3] Add --dry-run mode in `scripts/migrate_voices_yaml.py` that prints generated files without writing to disk
+- [X] T042 [US3] Add summary logging in `scripts/migrate_voices_yaml.py` (files created, skipped, errors)
+- [X] T043 [US3] Create migration log file `migration.log` with detailed migration results in `scripts/migrate_voices_yaml.py`
+- [X] T044 [US3] Test migration script on existing voices.yaml file: verify character count matches
+- [X] T045 [US3] Test migrated character with type: smalltalk produces file with SmalltalkInstructions in PromptGenerator
+- [X] T046 [US3] Test migrated character with Freesound voice source preserves URL, license, and description fields
+- [X] T047 [US3] Test that migrated characters load successfully into the system and function identically to voices.yaml counterparts
+- [X] T048 [US3] Run migration script on production voices.yaml to generate all character files in story_characters/
 
 **Checkpoint**: All user stories should now be independently functional. Legacy characters migrated to new format.
 
@@ -130,18 +130,18 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T049 [P] Add deprecation notice to VoiceList class in `unmute/tts/voices.py` docstring indicating migration to character_loader
-- [ ] T050 [P] Update quickstart.md with validation instructions (how to create character, test loading, API verification)
-- [ ] T051 [P] Create character file template documentation comment in `story_characters/README.md` with required attributes and PromptGenerator interface
-- [ ] T052 [P] Add character loading error troubleshooting guide in quickstart.md
-- [ ] T053 Code review: Verify all constitution checks pass (Service Isolation, Async-First Architecture, Observability & Metrics)
-- [ ] T054 Performance test: Load 50 character files and verify load time <5 seconds
-- [ ] T055 Performance test: Load 100 character files and verify load time <10 seconds
-- [ ] T056 Graceful degradation test: Create character files with 20% error rate and verify system starts successfully
-- [ ] T057 Verify /v1/voices endpoint contract unchanged (response structure, field types, field names, only good=True returned)
-- [ ] T058 Manual test: Copy character file to different environment and verify it works without additional configuration
-- [ ] T059 [P] Update CLAUDE.md with character management commands and file structure
-- [ ] T060 Final integration test: Start server with migrated characters and verify all functionality works end-to-end
+- [X] T049 [P] Add deprecation notice to VoiceList class in `unmute/tts/voices.py` docstring indicating migration to character_loader
+- [X] T050 [P] Update quickstart.md with validation instructions (how to create character, test loading, API verification) - Already complete
+- [X] T051 [P] Create character file template documentation comment in `story_characters/README.md` with required attributes and PromptGenerator interface
+- [X] T052 [P] Add character loading error troubleshooting guide in quickstart.md - Already complete
+- [X] T053 Code review: Verify all constitution checks pass (Service Isolation, Async-First Architecture, Observability & Metrics)
+- [X] T054 Performance test: Load 50 character files and verify load time <5 seconds
+- [X] T055 Performance test: Load 100 character files and verify load time <10 seconds
+- [X] T056 Graceful degradation test: Create character files with 20% error rate and verify system starts successfully
+- [X] T057 Verify /v1/voices endpoint contract unchanged (response structure, field types, field names, only good=True returned)
+- [X] T058 Manual test: Copy character file to different environment and verify it works without additional configuration
+- [X] T059 [P] Update CLAUDE.md with character management commands and file structure
+- [X] T060 Final integration test: Start server with migrated characters and verify all functionality works end-to-end
 
 ---
 
