@@ -45,10 +45,48 @@ cd ..
 # A fix for building Sentencepiece on GCC 15, see: https://github.com/google/sentencepiece/issues/1108
 export CXXFLAGS="-include cstdint"
 
-# RTX 50 FIX: Always rebuild moshi-server to ensure it uses the venv's Python
-# This prevents "SRE module mismatch" errors from Python version conflicts
-echo "Compiling moshi-server with venv Python (takes ~2 minutes)..."
-cargo install --features cuda --force moshi-server@0.6.4
+# OPTIMIZATION: Check if we need to recompile moshi-server
+MOSHI_BINARY="$HOME/.cargo/bin/moshi-server"
+ENV_HASH_FILE=".venv/moshi_env_hash"
+NEED_RECOMPILE=true
+
+# Create environment hash to detect changes
+create_env_hash() {
+    {
+        echo "PYTHON_PATH:$(which python)"
+        echo "LD_LIBRARY_PATH:$LD_LIBRARY_PATH"
+        echo "PYTHONPATH:$PYTHONPATH"
+        echo "CUDA_COMPUTE_CAP:$CUDA_COMPUTE_CAP"
+        echo "CXXFLAGS:$CXXFLAGS"
+        echo "MOSHI_VERSION:0.6.4"
+        # Include Python package versions that affect compilation
+        python -c "import torch, moshi, huggingface_hub; print(f'PYTHON_DEPS:torch={torch.__version__},moshi={moshi.__version__},hf_hub={huggingface_hub.__version__}')" 2>/dev/null || echo "PYTHON_DEPS:unknown"
+    } | sha256sum | cut -d' ' -f1
+}
+
+# Check if binary exists and environment hasn't changed
+if [ -f "$MOSHI_BINARY" ] && [ -f "$ENV_HASH_FILE" ]; then
+    CURRENT_HASH=$(create_env_hash)
+    STORED_HASH=$(cat "$ENV_HASH_FILE" 2>/dev/null || echo "")
+    
+    if [ "$CURRENT_HASH" = "$STORED_HASH" ]; then
+        echo "✅ Using cached moshi-server binary (environment unchanged)"
+        NEED_RECOMPILE=false
+    else
+        echo "🔄 Environment changed, need to recompile moshi-server"
+    fi
+else
+    echo "🔄 No cached binary found, need to compile moshi-server"
+fi
+
+if [ "$NEED_RECOMPILE" = true ]; then
+    echo "Compiling moshi-server with venv Python (takes ~2 minutes)..."
+    cargo install --features cuda --force moshi-server@0.6.4
+    
+    # Store environment hash for next time
+    create_env_hash > "$ENV_HASH_FILE"
+    echo "✅ Binary compiled and cached"
+fi
 
 # Verify imports work before starting
 echo "Verifying Python imports..."
