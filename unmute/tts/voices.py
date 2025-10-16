@@ -4,7 +4,7 @@ import subprocess
 import time
 from hashlib import md5
 from pathlib import Path
-from typing import Literal, Sequence
+from typing import Any, Literal, Sequence
 
 import librosa
 import numpy as np
@@ -15,7 +15,6 @@ from pydantic import BaseModel, Field
 from ruamel.yaml import YAML
 
 from unmute.kyutai_constants import HEADERS
-from unmute.llm.system_prompt import Instructions
 from unmute.tts.freesound_download import (
     OUTPUT_DIR,
     FreesoundVoiceSource,
@@ -169,7 +168,7 @@ class VoiceSample(BaseModel):
     name: str | None = None
     comment: str | None = None
     good: bool | None = None
-    instructions: Instructions | None = None
+    instructions: dict[str, Any] | None = None
     source: FreesoundVoiceSource | FileVoiceSource = Field(discriminator="source_type")
 
 

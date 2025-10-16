@@ -322,7 +322,7 @@ class UnmuteHandler(AsyncStreamHandler):
         if (
             len(self.chatbot.chat_history) == 1
             # Wait until the instructions are updated. A bit hacky
-            and self.chatbot.get_instructions() is not None
+            and self.chatbot.get_prompt_generator() is not None
         ):
             logger.info("Generating initial response.")
             await self._generate_response()
@@ -638,11 +638,24 @@ class UnmuteHandler(AsyncStreamHandler):
             await self.add_chat_message_delta(USER_SILENCE_MARKER, "user")
 
     async def update_session(self, session: ora.SessionConfig):
-        if session.instructions:
-            self.chatbot.set_instructions(session.instructions)
-
         if session.voice:
             self.tts_voice = session.voice
+
+            # Look up the character and instantiate its PromptGenerator
+            from unmute.main_websocket import get_character_manager
+            character_manager = get_character_manager()
+            character = character_manager.get_character(session.voice)
+
+            if character and hasattr(character, '_prompt_generator'):
+                # Instantiate the PromptGenerator with the character's instructions
+                prompt_generator = character._prompt_generator(character.instructions)  # type: ignore
+                self.chatbot.set_prompt_generator(prompt_generator)
+            elif session.instructions:
+                # Fallback to using instructions dict if no character found
+                self.chatbot.set_instructions(session.instructions)
+        elif session.instructions:
+            # If only instructions provided (no voice), use them directly
+            self.chatbot.set_instructions(session.instructions)
 
         if not session.allow_recording and self.recorder:
             await self.recorder.add_event("client", ora.SessionUpdate(session=session))

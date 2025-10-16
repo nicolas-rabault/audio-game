@@ -17,8 +17,6 @@ from typing import (
 
 from pydantic import BaseModel, Field, model_validator
 
-from unmute.llm.system_prompt import Instructions
-
 T = TypeVar("T", bound=str)
 
 
@@ -64,8 +62,8 @@ class Error(BaseEvent[Literal["error"]]):
 
 
 class SessionConfig(BaseModel):
-    # The "Instructions" object is an Unmute extension
-    instructions: Instructions | None = None
+    # The "instructions" dict is an Unmute extension
+    instructions: dict[str, Any] | None = None
     voice: str | None = None
     allow_recording: bool
 

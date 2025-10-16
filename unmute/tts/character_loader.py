@@ -12,6 +12,7 @@ import asyncio
 import importlib.util
 import inspect
 import logging
+import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -59,6 +60,12 @@ def _load_character_file_sync(file_path: Path) -> Dict[str, Any]:
         ImportError: If module cannot be loaded
         AttributeError: If required attributes are missing
     """
+    # Ensure the characters package is in sys.modules
+    # This is needed for imports like "from characters.shared_constants import ..."
+    if 'characters' not in sys.modules:
+        import characters
+        sys.modules['characters'] = characters
+
     # Load module using importlib
     spec = importlib.util.spec_from_file_location(
         f"characters.{file_path.stem}", file_path
@@ -67,6 +74,10 @@ def _load_character_file_sync(file_path: Path) -> Dict[str, Any]:
         raise ImportError(f"Cannot create module spec from {file_path}")
 
     module = importlib.util.module_from_spec(spec)
+
+    # Register the module in sys.modules before executing to support internal imports
+    sys.modules[spec.name] = module
+
     spec.loader.exec_module(module)
 
     # Check for required attributes
@@ -215,8 +226,19 @@ class CharacterManager:
 
         start_time = time.time()
 
+        # Files to skip (utility modules, not character definitions)
+        # Only skip __init__.py; resources/ subdirectory is excluded separately
+        SKIP_FILES = {
+            "__init__.py",
+        }
+
         # Discover all .py files (sorted for deterministic order)
-        character_files = sorted(characters_dir.glob("*.py"))
+        # Skip files in SKIP_FILES and anything in the resources/ subdirectory
+        all_py_files = sorted(characters_dir.glob("*.py"))
+        character_files = [
+            f for f in all_py_files
+            if f.name not in SKIP_FILES
+        ]
         total_files = len(character_files)
 
         if total_files == 0:

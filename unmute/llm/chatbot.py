@@ -1,12 +1,35 @@
 from logging import getLogger
-from typing import Any, Literal
+from typing import Any, Literal, Protocol
 
 from unmute.llm.llm_utils import preprocess_messages_for_llm
-from unmute.llm.system_prompt import ConstantInstructions, Instructions
+from unmute.llm.system_prompt import (
+    _SYSTEM_PROMPT_TEMPLATE,
+    _SYSTEM_PROMPT_BASICS,
+    _DEFAULT_ADDITIONAL_INSTRUCTIONS,
+    LANGUAGE_CODE_TO_INSTRUCTIONS,
+    get_readable_llm_name,
+)
 
 ConversationState = Literal["waiting_for_user", "user_speaking", "bot_speaking"]
 
 logger = getLogger(__name__)
+
+
+class PromptGenerator(Protocol):
+    """Protocol for objects that can generate system prompts."""
+
+    def make_system_prompt(self) -> str:
+        ...
+
+
+def _default_system_prompt() -> str:
+    """Generate a default system prompt using constant instructions."""
+    return _SYSTEM_PROMPT_TEMPLATE.format(
+        _SYSTEM_PROMPT_BASICS=_SYSTEM_PROMPT_BASICS,
+        additional_instructions=_DEFAULT_ADDITIONAL_INSTRUCTIONS,
+        language_instructions=LANGUAGE_CODE_TO_INSTRUCTIONS[None],
+        llm_name=get_readable_llm_name(),
+    )
 
 
 class Chatbot:
@@ -14,9 +37,9 @@ class Chatbot:
         # It's actually a list of ChatCompletionStreamRequestMessagesTypedDict but then
         # it's really difficult to convince Python you're passing in the right type
         self.chat_history: list[dict[Any, Any]] = [
-            {"role": "system", "content": ConstantInstructions().make_system_prompt()}
+            {"role": "system", "content": _default_system_prompt()}
         ]
-        self._instructions: Instructions | None = None
+        self._prompt_generator: PromptGenerator | None = None
 
     def conversation_state(self) -> ConversationState:
         if not self.chat_history:
@@ -91,12 +114,44 @@ class Chatbot:
         messages = preprocess_messages_for_llm(messages)
         return messages
 
-    def set_instructions(self, instructions: Instructions):
-        # Note that make_system_prompt() might not be deterministic, so we run it only
-        # once and save the result. We still keep self._instructions because it's used
-        # to check whether initial instructions have been set.
-        self._update_system_prompt(instructions.make_system_prompt())
-        self._instructions = instructions
+    def set_prompt_generator(self, prompt_generator: PromptGenerator):
+        """Set the prompt generator and update the system prompt.
+
+        Note that make_system_prompt() might not be deterministic, so we run it only
+        once and save the result. We still keep self._prompt_generator because it's used
+        to check whether initial instructions have been set.
+        """
+        self._update_system_prompt(prompt_generator.make_system_prompt())
+        self._prompt_generator = prompt_generator
+
+    # Legacy method for backwards compatibility
+    def set_instructions(self, instructions: dict[str, Any] | PromptGenerator):
+        """Set instructions using either a dict or a PromptGenerator.
+
+        If a dict is provided, it should have a 'instruction_prompt' field and
+        will be wrapped in a simple PromptGenerator.
+        """
+        if hasattr(instructions, 'make_system_prompt'):
+            # It's already a PromptGenerator
+            self.set_prompt_generator(instructions)  # type: ignore
+        else:
+            # It's a dict, create a simple wrapper
+            class SimplePromptGenerator:
+                def __init__(self, instructions_dict: dict[str, Any]):
+                    self.instructions = instructions_dict
+
+                def make_system_prompt(self) -> str:
+                    instruction_prompt = self.instructions.get('instruction_prompt', _DEFAULT_ADDITIONAL_INSTRUCTIONS)
+                    return _SYSTEM_PROMPT_TEMPLATE.format(
+                        _SYSTEM_PROMPT_BASICS=_SYSTEM_PROMPT_BASICS,
+                        additional_instructions=instruction_prompt,
+                        language_instructions=LANGUAGE_CODE_TO_INSTRUCTIONS.get(
+                            self.instructions.get('language')
+                        ),
+                        llm_name=get_readable_llm_name(),
+                    )
+
+            self.set_prompt_generator(SimplePromptGenerator(instructions))  # type: ignore
 
     def _update_system_prompt(self, system_prompt: str):
         self.chat_history[0] = {"role": "system", "content": system_prompt}
@@ -106,8 +161,8 @@ class Chatbot:
         assert self.chat_history[0]["role"] == "system"
         return self.chat_history[0]["content"]
 
-    def get_instructions(self) -> Instructions | None:
-        return self._instructions
+    def get_prompt_generator(self) -> PromptGenerator | None:
+        return self._prompt_generator
 
     def last_message(self, role: str) -> str | None:
         valid_messages = [
