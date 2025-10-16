@@ -178,7 +178,7 @@ class VoiceList:
     DEPRECATED: This class is deprecated in favor of CharacterManager.
 
     Voice loading has been migrated to use self-contained character files
-    in the story_characters/ directory. Each character is now defined in
+    in the characters/ directory. Each character is now defined in
     its own Python file with complete configuration and prompt generation logic.
 
     Use CharacterManager from unmute.tts.character_loader instead.

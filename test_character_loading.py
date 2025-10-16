@@ -12,13 +12,13 @@ from unmute.tts.character_loader import CharacterManager
 
 
 async def test_character_loading():
-    """Test character loading from story_characters/ directory."""
+    """Test character loading from characters/ directory."""
     print("=" * 60)
     print("Testing Character Loading")
     print("=" * 60)
 
     manager = CharacterManager()
-    characters_dir = Path(__file__).parent / "story_characters"
+    characters_dir = Path(__file__).parent / "characters"
 
     print(f"\nCharacters directory: {characters_dir}")
     print(f"Directory exists: {characters_dir.exists()}")

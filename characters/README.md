@@ -141,7 +141,7 @@ VOICE_SOURCE = {
 
 ## Creating a New Character
 
-1. Create a new `.py` file in `story_characters/`
+1. Create a new `.py` file in `characters/`
 2. Copy the template above
 3. Fill in all required fields
 4. Choose appropriate instruction type

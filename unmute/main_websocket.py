@@ -97,12 +97,12 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup_event():
-    """Load characters from story_characters/ directory at startup."""
+    """Load characters from characters/ directory at startup."""
     global _character_manager
     from pathlib import Path
 
     _character_manager = CharacterManager()
-    characters_dir = Path(__file__).parents[1] / "story_characters"
+    characters_dir = Path(__file__).parents[1] / "characters"
 
     try:
         result = await _character_manager.load_characters(characters_dir)

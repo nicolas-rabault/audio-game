@@ -142,7 +142,7 @@ async def test_character_attributes():
     print("=" * 60)
 
     manager = CharacterManager()
-    characters_dir = Path(__file__).parent / "story_characters"
+    characters_dir = Path(__file__).parent / "characters"
     result = await manager.load_characters(characters_dir)
 
     if result.loaded_count > 0:

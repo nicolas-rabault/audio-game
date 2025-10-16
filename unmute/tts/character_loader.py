@@ -2,7 +2,7 @@
 Character loading module for self-contained character management system.
 
 This module handles:
-- Discovery of character files in the story_characters/ directory
+- Discovery of character files in the characters/ directory
 - Dynamic module loading using importlib
 - Character validation and error handling
 - Prometheus metrics for character loading
@@ -61,7 +61,7 @@ def _load_character_file_sync(file_path: Path) -> Dict[str, Any]:
     """
     # Load module using importlib
     spec = importlib.util.spec_from_file_location(
-        f"story_characters.{file_path.stem}", file_path
+        f"characters.{file_path.stem}", file_path
     )
     if spec is None or spec.loader is None:
         raise ImportError(f"Cannot create module spec from {file_path}")
@@ -202,7 +202,7 @@ class CharacterManager:
         Load all character files from the specified directory.
 
         Args:
-            characters_dir: Path to story_characters/ directory
+            characters_dir: Path to characters/ directory
 
         Returns:
             CharacterLoadResult with loaded characters and metrics

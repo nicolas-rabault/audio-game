@@ -3,7 +3,7 @@
 Migration script to convert voices.yaml to self-contained character files.
 
 This script reads the existing voices.yaml file and generates individual Python
-character files in the story_characters/ directory. Each character file contains
+character files in the characters/ directory. Each character file contains
 all the necessary data (name, voice source, instructions, metadata) and prompt
 generation logic in a single, self-contained file.
 """
@@ -250,8 +250,8 @@ def main():
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("story_characters"),
-        help="Output directory for character files (default: story_characters)",
+        default=Path("characters"),
+        help="Output directory for character files (default: characters)",
     )
     parser.add_argument(
         "--dry-run",
