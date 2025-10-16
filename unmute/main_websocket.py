@@ -63,6 +63,9 @@ app = FastAPI()
 # Global CharacterManager instance
 _character_manager: CharacterManager | None = None
 
+# Global set to track active WebSocket connections for reload functionality
+_active_websockets: set[WebSocket] = set()
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logging.basicConfig(
@@ -120,6 +123,44 @@ def get_character_manager() -> CharacterManager:
     if _character_manager is None:
         raise RuntimeError("CharacterManager not initialized. Call startup_event() first.")
     return _character_manager
+
+
+async def terminate_all_sessions(reason: str = "Server is reloading characters"):
+    """
+    Terminate all active WebSocket sessions.
+
+    This is called when characters are reloaded to force clients to reconnect
+    with the new character set.
+
+    Args:
+        reason: Message to send to clients explaining why they're being disconnected
+    """
+    global _active_websockets
+
+    if not _active_websockets:
+        logger.info("No active sessions to terminate")
+        return
+
+    logger.info(f"Terminating {len(_active_websockets)} active sessions: {reason}")
+
+    # Create a copy of the set to iterate over, as it will be modified during iteration
+    websockets_to_close = list(_active_websockets)
+
+    for ws in websockets_to_close:
+        try:
+            if ws.client_state == WebSocketState.CONNECTED:
+                # Send a graceful error message before closing
+                error_event = make_ora_error(
+                    type="fatal",
+                    message=reason + ". Please reconnect."
+                )
+                await ws.send_text(error_event.model_dump_json())
+                await ws.close(code=1012, reason=reason)  # 1012 = Service Restart
+                logger.debug(f"Closed WebSocket connection: {ws.client}")
+        except Exception as e:
+            logger.warning(f"Error closing WebSocket: {e}")
+
+    logger.info("All active sessions terminated")
 
 
 @app.get("/")
@@ -241,6 +282,107 @@ def voices():
     return good_voices
 
 
+class CharacterReloadRequest(BaseModel):
+    """Request model for reloading characters from a new directory."""
+    directory: str = Field(
+        ...,
+        description="Absolute path to the directory containing character files. "
+        "Use 'default' to reload the default characters/ directory."
+    )
+
+
+@app.post("/v1/characters/reload")
+async def reload_characters_endpoint(request: CharacterReloadRequest):
+    """
+    Reload characters from a new directory.
+
+    WARNING: This will terminate all active WebSocket sessions and force clients to reconnect.
+
+    Args:
+        request: CharacterReloadRequest with directory path
+
+    Returns:
+        JSON with reload results
+
+    Example:
+        POST /v1/characters/reload
+        {
+            "directory": "/home/user/my-characters"
+        }
+
+        Or to reload the default characters/ directory:
+        {
+            "directory": "default"
+        }
+    """
+    from pathlib import Path
+
+    character_manager = get_character_manager()
+
+    # Handle "default" keyword to reload original characters directory
+    if request.directory == "default":
+        characters_dir = Path(__file__).parents[1] / "characters"
+        logger.info("Reloading default characters directory")
+    else:
+        characters_dir = Path(request.directory)
+
+    # Validate the directory exists
+    if not characters_dir.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Directory not found: {characters_dir}"
+        )
+
+    if not characters_dir.is_dir():
+        raise HTTPException(
+            status_code=400,
+            detail=f"Path is not a directory: {characters_dir}"
+        )
+
+    try:
+        # Step 1: Reload characters
+        result = await character_manager.reload_characters(characters_dir)
+
+        # Step 2: Clear the cache for the /v1/voices endpoint
+        voices.cache_clear()
+
+        # Step 3: Terminate all active WebSocket sessions
+        await terminate_all_sessions(
+            reason=f"Characters reloaded from {characters_dir}"
+        )
+
+        logger.info(
+            f"Characters reloaded successfully: {result.loaded_count}/{result.total_files} loaded "
+            f"from {characters_dir}"
+        )
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "success": True,
+                "directory": str(characters_dir),
+                "total_files": result.total_files,
+                "loaded_count": result.loaded_count,
+                "error_count": result.error_count,
+                "load_duration": result.load_duration,
+                "message": f"Successfully loaded {result.loaded_count} characters from {characters_dir}"
+            }
+        )
+
+    except FileNotFoundError as e:
+        logger.error(f"Character reload failed: {e}")
+        raise HTTPException(
+            status_code=404,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Character reload failed with unexpected error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to reload characters: {str(e)}"
+        )
+
+
 class LimitUploadSizeForPath(BaseHTTPMiddleware):
     def __init__(self, app: ASGIApp, max_upload_size: int, path: str) -> None:
         super().__init__(app)
@@ -320,7 +462,7 @@ async def post_voice_donation(
 
 @app.websocket("/v1/realtime")
 async def websocket_route(websocket: WebSocket):
-    global _last_profile, _current_profile
+    global _last_profile, _current_profile, _active_websockets
     mt.SESSIONS.inc()
     mt.ACTIVE_SESSIONS.inc()
     session_watch = Stopwatch()
@@ -344,6 +486,9 @@ async def websocket_route(websocket: WebSocket):
             # will not connect.
             await websocket.accept(subprotocol="realtime")
 
+            # Register this websocket for reload tracking
+            _active_websockets.add(websocket)
+
             handler = UnmuteHandler()
             async with handler:
                 await handler.start_up()
@@ -352,6 +497,9 @@ async def websocket_route(websocket: WebSocket):
         except Exception as exc:
             await _report_websocket_exception(websocket, exc)
         finally:
+            # Unregister websocket
+            _active_websockets.discard(websocket)
+
             if _current_profile is not None:
                 _current_profile.stop()
                 logger.info("Profiler saved.")

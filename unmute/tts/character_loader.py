@@ -207,6 +207,64 @@ class CharacterManager:
     def __init__(self):
         self.characters: Dict[str, VoiceSample] = {}
         self._load_result: CharacterLoadResult | None = None
+        self._current_directory: Path | None = None
+
+    def _cleanup_character_modules(self) -> None:
+        """
+        Remove all previously loaded character modules from sys.modules.
+        This ensures a clean reload without stale imports.
+        """
+        # Find all modules in the characters.* namespace
+        character_modules = [
+            module_name
+            for module_name in sys.modules.keys()
+            if module_name.startswith("characters.")
+        ]
+
+        # Remove them from sys.modules
+        for module_name in character_modules:
+            del sys.modules[module_name]
+            logger.debug(f"Removed module from sys.modules: {module_name}")
+
+    async def reload_characters(self, characters_dir: Path) -> CharacterLoadResult:
+        """
+        Reload characters from a new directory, clearing all previously loaded characters.
+
+        This method:
+        1. Cleans up old character modules from sys.modules
+        2. Loads new characters from the specified directory
+        3. Updates the character registry
+
+        WARNING: This will break active sessions using old characters.
+        Sessions should be terminated/reconnected after calling this method.
+
+        Args:
+            characters_dir: Path to the new characters directory
+
+        Returns:
+            CharacterLoadResult with loaded characters and metrics
+
+        Raises:
+            FileNotFoundError: If characters_dir does not exist
+        """
+        logger.info(f"Reloading characters from: {characters_dir}")
+
+        # Step 1: Clean up old modules
+        self._cleanup_character_modules()
+
+        # Step 2: Clear old characters
+        old_count = len(self.characters)
+        self.characters = {}
+        logger.info(f"Cleared {old_count} previously loaded characters")
+
+        # Step 3: Load new characters
+        result = await self.load_characters(characters_dir)
+
+        logger.info(
+            f"Reload complete: {result.loaded_count} characters loaded from {characters_dir}"
+        )
+
+        return result
 
     async def load_characters(self, characters_dir: Path) -> CharacterLoadResult:
         """
@@ -280,6 +338,7 @@ class CharacterManager:
 
         # Update instance state
         self.characters = characters
+        self._current_directory = characters_dir
         self._load_result = CharacterLoadResult(
             characters=characters,
             total_files=total_files,

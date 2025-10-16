@@ -12,25 +12,8 @@ const frankRuhlLibre = Frank_Ruhl_Libre({
 const ShortExplanation = () => {
   return (
     <p className="text-xs text-right">
-      Speak to an AI using our new low-latency open-source{" "}
-      <Link
-        href="https://kyutai.org/next/stt"
-        className="underline text-green"
-        target="_blank"
-        rel="noopener"
-      >
-        speech-to-text
-      </Link>{" "}
-      and{" "}
-      <Link
-        href="https://kyutai.org/next/tts"
-        className="underline text-green"
-        target="_blank"
-        rel="noopener"
-      >
-        text-to-speech
-      </Link>
-      .
+          Advanced conversational AI story engine.<br/>
+          Anyone can make his own story.
     </p>
   );
 };
@@ -39,11 +22,16 @@ const UnmuteHeader = () => {
   return (
     <div className="flex flex-col gap-2 py-2 md:py-8 items-end max-w-80 md:max-w-60 lg:max-w-80">
       {/* kyutaiLogo */}
-      <h1 className={`text-3xl ${frankRuhlLibre.className}`}>Unmute.sh</h1>
+      <h1 className={`text-3xl ${frankRuhlLibre.className}`}>Story Engine</h1>
       <div className="flex items-center gap-2 -mt-1 text-xs">
-        by
-        <Link href="https://kyutai.org" target="_blank" rel="noopener">
-          <img src={kyutaiLogo.src} alt="Kyutai logo" className="w-20" />
+        by{" "}
+        <Link
+          href="https://github.com/nicolas-rabault"
+          target="_blank"
+          rel="noopener"
+          className="underline text-green"
+        >
+          Nicolas Rabault
         </Link>
       </div>
       <ShortExplanation />
