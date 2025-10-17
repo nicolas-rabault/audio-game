@@ -146,34 +146,155 @@ class VLLMStream:
         self,
         client: AsyncOpenAI,
         temperature: float = 1.0,
+        tools: list[dict[str, Any]] | None = None,
+        prompt_generator: Any = None,
+        tool_validators: dict[str, Any] | None = None,
+        character_name: str = "Unknown",
     ):
         """
-        If `model` is None, it will look at the available models, and if there is only
-        one model, it will use that one. Otherwise, it will raise.
+        Initialize VLLM stream with optional tool definitions.
+
+        Args:
+            client: AsyncOpenAI client instance
+            temperature: Sampling temperature (default 1.0)
+            tools: Optional list of OpenAI function calling tool definitions
+            prompt_generator: Character's PromptGenerator instance (for tool execution)
+            tool_validators: Dict of Pydantic validators for each tool
+            character_name: Character name (for metrics)
         """
         self.client = client
         self.model = autoselect_model()
         self.temperature = temperature
+        self.tools = tools
+        self.prompt_generator = prompt_generator
+        self.tool_validators = tool_validators or {}
+        self.character_name = character_name
 
     async def chat_completion(
-        self, messages: list[dict[str, str]]
+        self, messages: list[dict[str, Any]]
     ) -> AsyncIterator[str]:
-        stream = await self.client.chat.completions.create(
-            model=self.model,
-            messages=cast(Any, messages),  # Cast and hope for the best
-            stream=True,
-            temperature=self.temperature,
-        )
+        """
+        Stream chat completion with automatic tool call handling.
+
+        T015: Detects tool calls in streaming response
+        T016-T017: Executes tools and re-queries LLM
+        """
+        # Build API call parameters
+        api_params: dict[str, Any] = {
+            "model": self.model,
+            "messages": messages,
+            "stream": True,
+            "temperature": self.temperature,
+        }
+
+        # Add tools if defined
+        if self.tools:
+            api_params["tools"] = self.tools
+
+        stream = await self.client.chat.completions.create(**api_params)
+
+        # T015: Collect tool calls if any
+        tool_calls_buffer = {}
+        assistant_message_content = []
+        tool_calls_detected = False
 
         async with stream:
             async for chunk in stream:
-                chunk_content = chunk.choices[0].delta.content
+                delta = chunk.choices[0].delta
 
-                if not chunk_content:
-                    # This happens on the first message, see:
-                    # https://platform.openai.com/docs/guides/streaming-responses#read-the-responses
-                    # Also ignore `null` chunks, which is what llama.cpp does:
-                    # https://github.com/ggml-org/llama.cpp/blob/6491d6e4f1caf0ad2221865b4249ae6938a6308c/tools/server/tests/unit/test_chat_completion.py#L338
-                    continue
+                # T015: Check for tool calls in streaming response
+                if hasattr(delta, 'tool_calls') and delta.tool_calls:
+                    tool_calls_detected = True
+                    for tool_call_delta in delta.tool_calls:
+                        idx = tool_call_delta.index
+                        if idx not in tool_calls_buffer:
+                            tool_calls_buffer[idx] = {
+                                'id': tool_call_delta.id or '',
+                                'type': 'function',
+                                'function': {
+                                    'name': tool_call_delta.function.name or '',
+                                    'arguments': ''
+                                }
+                            }
 
-                yield chunk_content
+                        # Accumulate function name and arguments
+                        if tool_call_delta.function.name:
+                            tool_calls_buffer[idx]['function']['name'] = tool_call_delta.function.name
+                        if tool_call_delta.function.arguments:
+                            tool_calls_buffer[idx]['function']['arguments'] += tool_call_delta.function.arguments
+                        if tool_call_delta.id:
+                            tool_calls_buffer[idx]['id'] = tool_call_delta.id
+
+                # Regular content
+                chunk_content = delta.content
+                if chunk_content:
+                    assistant_message_content.append(chunk_content)
+                    # If not executing tools, yield content immediately
+                    if not self.tools or not self.prompt_generator:
+                        yield chunk_content
+
+        # T016-T017: If tools were called and we have prompt_generator, execute them
+        if tool_calls_detected and self.prompt_generator and self.tools:
+            from unmute.llm.tool_executor import execute_tool
+            import logging
+            logger = logging.getLogger(__name__)
+
+            # Convert buffer to list of tool calls
+            tool_calls = [tool_calls_buffer[idx] for idx in sorted(tool_calls_buffer.keys())]
+
+            logger.info(f"Detected {len(tool_calls)} tool calls: {[tc['function']['name'] for tc in tool_calls]}")
+
+            # Add assistant message with tool calls to conversation
+            messages.append({
+                "role": "assistant",
+                "content": "".join(assistant_message_content) if assistant_message_content else None,
+                "tool_calls": tool_calls
+            })
+
+            # T016: Execute each tool call
+            for tool_call in tool_calls:
+                tool_name = tool_call['function']['name']
+                tool_arguments_json = tool_call['function']['arguments']
+                tool_call_id = tool_call['id']
+
+                logger.info(f"Executing tool: {tool_name} with args: {tool_arguments_json}")
+
+                # Execute tool
+                result = await execute_tool(
+                    self.prompt_generator,
+                    tool_name,
+                    tool_arguments_json,
+                    self.tool_validators,
+                    self.character_name
+                )
+
+                # T017: Add tool result to messages
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tool_call_id,
+                    "content": result
+                })
+
+                logger.info(f"Tool {tool_name} result: {result[:100]}")
+
+            # T017: Re-query LLM with tool results (no tools this time to avoid loops)
+            logger.info("Re-querying LLM with tool results")
+            final_stream = await self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                stream=True,
+                temperature=self.temperature,
+                # Don't include tools in follow-up to avoid infinite loops
+            )
+
+            # Stream the final response
+            async with final_stream:
+                async for chunk in final_stream:
+                    chunk_content = chunk.choices[0].delta.content
+                    if chunk_content:
+                        yield chunk_content
+
+        elif not tool_calls_detected and assistant_message_content:
+            # No tool calls, but we buffered content (shouldn't happen if tools not defined)
+            for content in assistant_message_content:
+                yield content

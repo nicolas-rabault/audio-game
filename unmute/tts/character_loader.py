@@ -17,9 +17,9 @@ import time
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Literal
 
-from pydantic import ValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from unmute.metrics import (
     CHARACTER_LOAD_COUNT,
@@ -33,6 +33,53 @@ logger = logging.getLogger(__name__)
 
 # Required attributes in character files
 REQUIRED_ATTRIBUTES = ["CHARACTER_NAME", "VOICE_SOURCE", "INSTRUCTIONS"]
+
+
+# ========================================
+# Pydantic Models for Tool Validation
+# ========================================
+
+
+class ToolFunctionDefinition(BaseModel):
+    """OpenAI function definition schema."""
+
+    name: str = Field(pattern=r"^[a-zA-Z][a-zA-Z0-9_]*$", max_length=50)
+    description: str = Field(min_length=1, max_length=200)
+    parameters: dict[str, Any] | None = None
+
+    @field_validator("parameters")
+    @classmethod
+    def validate_parameters_schema(cls, v):
+        """Validate that parameters follow JSON Schema object format."""
+        if v is not None:
+            if v.get("type") != "object":
+                raise ValueError("Top-level parameters type must be 'object'")
+            if "properties" in v and len(v["properties"]) > 10:
+                raise ValueError("Maximum 10 parameters per tool")
+        return v
+
+
+class ToolDefinition(BaseModel):
+    """OpenAI tool definition schema."""
+
+    type: Literal["function"] = "function"
+    function: ToolFunctionDefinition
+
+
+class CharacterTools(BaseModel):
+    """Character's TOOLS list with validation."""
+
+    tools: list[ToolDefinition] = Field(max_length=10)
+
+    @field_validator("tools")
+    @classmethod
+    def validate_unique_names(cls, tools):
+        """Ensure tool names are unique within character."""
+        names = [t.function.name for t in tools]
+        if len(names) != len(set(names)):
+            duplicates = {n for n in names if names.count(n) > 1}
+            raise ValueError(f"Duplicate tool names: {duplicates}")
+        return tools
 
 
 @dataclass
@@ -100,6 +147,7 @@ def _load_character_file_sync(file_path: Path, module_prefix: str) -> Dict[str, 
         "instructions": getattr(module, "INSTRUCTIONS"),
         "metadata": getattr(module, "METADATA", {}),
         "prompt_generator": getattr(module, "PromptGenerator"),
+        "tools": getattr(module, "TOOLS", None),  # Optional TOOLS variable
     }
 
 
@@ -146,6 +194,52 @@ async def _validate_character_data(
                     f"{file_path.name}: make_system_prompt should return str (found {sig.return_annotation})"
                 )
 
+        # T008: Validate TOOLS variable structure (if present)
+        tools_list = raw_data.get("tools")
+        tool_validators: Dict[str, Any] = {}
+
+        if tools_list is not None:
+            # Validate TOOLS format
+            try:
+                if not isinstance(tools_list, list):
+                    logger.error(
+                        f"{file_path.name}: TOOLS must be a list, got {type(tools_list).__name__}"
+                    )
+                    CHARACTER_LOAD_ERRORS.labels(error_type="InvalidToolsFormat").inc()
+                    return None
+
+                # Validate using Pydantic model
+                validated_tools = CharacterTools(tools=tools_list)
+
+                # T010: Verify handle_tool_call method exists when TOOLS defined
+                if not hasattr(prompt_generator_class, "handle_tool_call"):
+                    logger.error(
+                        f"{file_path.name}: TOOLS defined but PromptGenerator missing handle_tool_call method"
+                    )
+                    CHARACTER_LOAD_ERRORS.labels(
+                        error_type="MissingToolHandler"
+                    ).inc()
+                    return None
+
+                # T009: Generate tool validators from parameter schemas
+                from unmute.llm.tool_executor import create_parameter_model
+
+                for tool in validated_tools.tools:
+                    tool_name = tool.function.name
+                    parameters = tool.function.parameters
+                    validator_model = create_parameter_model(tool_name, parameters)
+                    tool_validators[tool_name] = validator_model
+
+                logger.info(
+                    f"{file_path.name}: Loaded with {len(validated_tools.tools)} tools: "
+                    f"{[t.function.name for t in validated_tools.tools]}"
+                )
+
+            except ValidationError as e:
+                logger.error(f"{file_path.name}: TOOLS validation failed - {e}")
+                CHARACTER_LOAD_ERRORS.labels(error_type="ToolValidationError").inc()
+                return None
+
         # Create VoiceSample with Pydantic validation
         # Note: instructions are NOT part of VoiceSample schema - they are attached as internal attributes
         character = VoiceSample(
@@ -158,8 +252,13 @@ async def _validate_character_data(
         character._source_file = file_path.name  # type: ignore
         character._instructions = raw_data["instructions"]  # type: ignore
         character._prompt_generator = prompt_generator_class  # type: ignore
+        character._tools = tools_list  # type: ignore
+        character._tool_validators = tool_validators  # type: ignore
 
-        logger.debug(f"{file_path.name}: Attached _instructions={raw_data['instructions']}")
+        logger.debug(
+            f"{file_path.name}: Attached _instructions={raw_data['instructions']}, "
+            f"_tools={len(tools_list) if tools_list else 0} tools"
+        )
 
         return character
 

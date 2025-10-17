@@ -202,6 +202,24 @@ class UnmuteHandler(AsyncStreamHandler):
         llm_stopwatch = Stopwatch()
 
         quest = await self.start_up_tts(generating_message_i)
+
+        # T014-T017: Get tools and tool context from character's prompt generator
+        tools = None
+        tool_validators = {}
+        prompt_generator = self.chatbot.get_prompt_generator()
+        character_name = "Unknown"
+
+        if prompt_generator and hasattr(prompt_generator, 'get_tools'):
+            tools = prompt_generator.get_tools()
+            if tools:
+                logger.info(f"Using {len(tools)} tools for LLM: {[t['function']['name'] for t in tools]}")
+
+        # Get tool validators and character name from character metadata
+        if hasattr(self, 'current_character') and self.current_character:
+            if hasattr(self.current_character, '_tool_validators'):
+                tool_validators = self.current_character._tool_validators  # type: ignore
+            character_name = getattr(self.current_character, 'name', 'Unknown')
+
         llm = VLLMStream(
             # if generating_message_i is 2, then we have a system prompt + an empty
             # assistant message signalling that we are generating a response.
@@ -209,6 +227,10 @@ class UnmuteHandler(AsyncStreamHandler):
             temperature=FIRST_MESSAGE_TEMPERATURE
             if generating_message_i == 2
             else FURTHER_MESSAGES_TEMPERATURE,
+            tools=tools,  # Pass tools to LLM
+            prompt_generator=prompt_generator,  # For tool execution
+            tool_validators=tool_validators,  # For parameter validation
+            character_name=character_name,  # For metrics
         )
 
         messages = self.chatbot.preprocessed_messages()
@@ -668,6 +690,9 @@ class UnmuteHandler(AsyncStreamHandler):
             character = self.character_manager.get_character(session.voice)
 
             if character and hasattr(character, '_prompt_generator'):
+                # Store character for tool access
+                self.current_character = character  # type: ignore
+
                 # Instantiate the PromptGenerator with the character's instructions
                 logger.info(f"Setting prompt generator for character: {session.voice}")
                 logger.info(f"Character instructions: {getattr(character, '_instructions', 'NOT FOUND')}")

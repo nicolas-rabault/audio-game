@@ -1,0 +1,211 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://audio-game.example.com/schemas/character-tools.json",
+  "title": "Character Tools Definition",
+  "description": "JSON Schema for character TOOLS variable in audio-game character files",
+  "type": "array",
+  "maxItems": 10,
+  "items": {
+    "$ref": "#/definitions/ToolDefinition"
+  },
+  "definitions": {
+    "ToolDefinition": {
+      "type": "object",
+      "required": ["type", "function"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "function",
+          "description": "Tool type (only 'function' is supported)"
+        },
+        "function": {
+          "$ref": "#/definitions/FunctionDefinition"
+        }
+      },
+      "additionalProperties": false
+    },
+    "FunctionDefinition": {
+      "type": "object",
+      "required": ["name", "description"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+          "maxLength": 50,
+          "description": "Tool name (valid Python identifier, unique within character)"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Clear description for LLM to understand when to use this tool"
+        },
+        "parameters": {
+          "$ref": "#/definitions/ParametersSchema",
+          "description": "JSON Schema for tool parameters (optional)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ParametersSchema": {
+      "type": "object",
+      "required": ["type", "properties"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "object",
+          "description": "Parameters must be an object"
+        },
+        "properties": {
+          "type": "object",
+          "maxProperties": 10,
+          "patternProperties": {
+            "^[a-zA-Z][a-zA-Z0-9_]*$": {
+              "$ref": "#/definitions/PropertySchema"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Parameter definitions (max 10 parameters)"
+        },
+        "required": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true,
+          "description": "List of required parameter names"
+        }
+      },
+      "additionalProperties": false
+    },
+    "PropertySchema": {
+      "type": "object",
+      "required": ["type", "description"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["string", "number", "integer", "boolean", "array", "object"],
+          "description": "Parameter type"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Parameter description for LLM"
+        },
+        "enum": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10,
+          "uniqueItems": true,
+          "description": "Allowed values (for string/number types)"
+        },
+        "items": {
+          "type": "object",
+          "description": "Item schema (for array types)",
+          "required": ["type"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["string", "number", "integer", "boolean", "object"]
+            }
+          }
+        },
+        "default": {
+          "description": "Default value if parameter not provided"
+        },
+        "minimum": {
+          "type": "number",
+          "description": "Minimum value (for number types)"
+        },
+        "maximum": {
+          "type": "number",
+          "description": "Maximum value (for number types)"
+        },
+        "minLength": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Minimum length (for string types)"
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum length (for string types)"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "examples": [
+    [
+      {
+        "type": "function",
+        "function": {
+          "name": "log_story_event",
+          "description": "Log an important narrative event to the terminal",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "event": {
+                "type": "string",
+                "description": "The story event to log"
+              },
+              "importance": {
+                "type": "string",
+                "enum": ["low", "medium", "high"],
+                "description": "Event importance level"
+              }
+            },
+            "required": ["event"]
+          }
+        }
+      }
+    ],
+    [
+      {
+        "type": "function",
+        "function": {
+          "name": "calculate_sum",
+          "description": "Calculate the sum of two numbers",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "a": {
+                "type": "number",
+                "description": "First number"
+              },
+              "b": {
+                "type": "number",
+                "description": "Second number"
+              }
+            },
+            "required": ["a", "b"]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "get_random_number",
+          "description": "Generate a random number in a specified range",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "min": {
+                "type": "integer",
+                "description": "Minimum value (inclusive)",
+                "default": 1
+              },
+              "max": {
+                "type": "integer",
+                "description": "Maximum value (inclusive)",
+                "default": 100
+              }
+            },
+            "required": []
+          }
+        }
+      }
+    ]
+  ]
+}
