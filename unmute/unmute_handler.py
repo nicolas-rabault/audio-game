@@ -180,6 +180,10 @@ class UnmuteHandler(AsyncStreamHandler):
         return is_new_message
 
     async def _generate_response(self):
+        logger.info(f"[TEXT TRACE] ========== STARTING RESPONSE GENERATION ==========")
+        logger.info(f"[TEXT TRACE] Current character: {self.chatbot.current_character}")
+        logger.info(f"[TEXT TRACE] History size before: {len(self.chatbot.get_current_history())}")
+        
         # Empty message to signal we've started responding.
         # Do it here in the lock to avoid race conditions
         await self.add_chat_message_delta("", "assistant")
@@ -188,6 +192,7 @@ class UnmuteHandler(AsyncStreamHandler):
 
     async def _generate_response_task(self):
         generating_message_i = len(self.chatbot.get_current_history())
+        logger.info(f"[TEXT TRACE] Response task started, generating_message_i={generating_message_i}")
 
         await self.output_queue.put(
             ora.ResponseCreated(
@@ -198,6 +203,7 @@ class UnmuteHandler(AsyncStreamHandler):
                 )
             )
         )
+        logger.info(f"[TEXT TRACE] Sent ResponseCreated to frontend")
 
         llm_stopwatch = Stopwatch()
 
@@ -250,9 +256,12 @@ class UnmuteHandler(AsyncStreamHandler):
 
         try:
             async for delta in rechunk_to_words(llm.chat_completion(messages)):
+                logger.info(f"[TEXT TRACE] LLM delta received: '{delta}'")
+                
                 await self.output_queue.put(
                     ora.UnmuteResponseTextDeltaReady(delta=delta)
                 )
+                logger.info(f"[TEXT TRACE] Sent to output_queue (frontend): '{delta}'")
 
                 mt.VLLM_RECV_WORDS.inc()
                 response_words.append(delta)
@@ -271,19 +280,27 @@ class UnmuteHandler(AsyncStreamHandler):
                     raise
 
                 if len(self.chatbot.get_current_history()) > generating_message_i:
+                    logger.info(f"[TEXT TRACE] Interrupted! Breaking out of loop.")
                     break  # We've been interrupted
 
                 assert isinstance(delta, str)  # make Pyright happy
+                logger.info(f"[TEXT TRACE] Sending to TTS: '{delta}'")
                 await tts.send(delta)
+                logger.info(f"[TEXT TRACE] TTS send complete for: '{delta}'")
 
+            full_response = "".join(response_words)
+            logger.info(f"[TEXT TRACE] Complete response ({len(response_words)} words): '{full_response}'")
+            
             await self.output_queue.put(
                 # The words include the whitespace, so no need to add it here
-                ora.ResponseTextDone(text="".join(response_words))
+                ora.ResponseTextDone(text=full_response)
             )
+            logger.info(f"[TEXT TRACE] Sent ResponseTextDone to frontend")
 
             if tts is not None:
-                logger.info("Sending TTS EOS.")
+                logger.info("[TEXT TRACE] Sending TTS EOS.")
                 await tts.send(TTSClientEosMessage())
+                logger.info("[TEXT TRACE] TTS EOS sent.")
         except asyncio.CancelledError:
             mt.VLLM_INTERRUPTS.inc()
             raise
@@ -396,6 +413,7 @@ class UnmuteHandler(AsyncStreamHandler):
                 logger.info(
                     "Flushing finished, took %.1f ms, RTF: %.1f", elapsed * 1000, rtf
                 )
+                logger.info("[TEXT TRACE] STT flush complete, generating response...")
                 await self._generate_response()
 
     def determine_pause(self) -> bool:
@@ -742,9 +760,13 @@ class UnmuteHandler(AsyncStreamHandler):
                     
                     # Generate initial response ONLY for new characters (first time switching to them)
                     # This prevents the receive loop's check from triggering multiple times
-                    if len(self.chatbot.get_current_history()) == 1:
-                        logger.info("Generating initial response for new character.")
+                    history_len = len(self.chatbot.get_current_history())
+                    logger.info(f"[TEXT TRACE] After character switch, history length: {history_len}")
+                    if history_len == 1:
+                        logger.info("[TEXT TRACE] New character detected, generating initial response.")
                         await self._generate_response()
+                    else:
+                        logger.info(f"[TEXT TRACE] Existing character (history={history_len}), NOT generating initial response.")
                 
                 except Exception as e:
                     logger.error(f"Character switch failed for {session.voice}: {e}", exc_info=True)
