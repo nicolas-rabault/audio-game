@@ -346,13 +346,15 @@ class UnmuteHandler(AsyncStreamHandler):
                 await self._generate_response()
             return
 
-        if (
-            len(self.chatbot.get_current_history()) == 1
-            # Wait until the instructions are updated. A bit hacky
-            and self.chatbot.get_prompt_generator() is not None
-        ):
-            logger.info("Generating initial response.")
-            await self._generate_response()
+        # NOTE: Initial response generation is now handled in update_session() when switching characters
+        # This prevents duplicate response generation from happening on every audio frame
+        # if (
+        #     len(self.chatbot.get_current_history()) == 1
+        #     # Wait until the instructions are updated. A bit hacky
+        #     and self.chatbot.get_prompt_generator() is not None
+        # ):
+        #     logger.info("Generating initial response.")
+        #     await self._generate_response()
 
         if self.audio_input_override is not None:
             frame = (frame[0], self.audio_input_override.override(frame[1]))
@@ -694,6 +696,12 @@ class UnmuteHandler(AsyncStreamHandler):
                 logger.error("Invalid character name: empty or whitespace-only")
                 return
             
+            # Skip if already on this character (prevents duplicate switches)
+            if (self.chatbot.current_character == session.voice and 
+                self.tts_voice == session.voice):
+                logger.debug(f"Already on character {session.voice}, skipping switch")
+                return
+            
             # Use turn_transition_lock to prevent switching during LLM response
             async with self.turn_transition_lock:
                 self.tts_voice = session.voice
@@ -729,6 +737,12 @@ class UnmuteHandler(AsyncStreamHandler):
                     
                     # Update CHARACTER_HISTORIES_PER_SESSION gauge
                     mt.CHARACTER_HISTORIES_PER_SESSION.set(len(self.chatbot.character_histories))
+                    
+                    # Generate initial response ONLY for new characters (first time switching to them)
+                    # This prevents the receive loop's check from triggering multiple times
+                    if len(self.chatbot.get_current_history()) == 1:
+                        logger.info("Generating initial response for new character.")
+                        await self._generate_response()
                 
                 except Exception as e:
                     logger.error(f"Character switch failed for {session.voice}: {e}", exc_info=True)
