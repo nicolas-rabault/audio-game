@@ -1,14 +1,14 @@
 <!--
 SYNC IMPACT REPORT
-Version: 1.0.0 → 1.1.0 (New principle added)
+Version: 1.1.0 → 1.2.0 (New principle added)
 Modified Principles: None
 Added Sections:
-  - VI. Clean Break Evolution (NON-NEGOTIABLE)
+  - VII. Character Independence (NON-NEGOTIABLE)
 Removed Sections: None
 Templates Requiring Updates:
-  ✅ plan-template.md (added constitution check for Clean Break Evolution)
-  ✅ spec-template.md (aligns with backward compatibility removal principle)
-  ✅ tasks-template.md (aligns with cleanup requirements)
+  ✅ plan-template.md (added constitution check for Character Independence)
+  ✅ spec-template.md (no changes needed - aligns with modular design)
+  ✅ tasks-template.md (no changes needed - aligns with separation of concerns)
   ✅ agent-file-template.md (no changes needed - template references constitution)
   ✅ checklist-template.md (no changes needed - template references constitution)
 Follow-up TODOs: None
@@ -120,6 +120,22 @@ When modifying existing functionality, the old implementation MUST be completely
 
 **Rationale**: Maintaining backward compatibility creates technical debt that accumulates over time. Multiple code paths for the same functionality increase cognitive load, complicate testing, and obscure the canonical way to accomplish tasks. Clean breaks force intentional design decisions and keep the codebase maintainable. In a rapidly evolving system with real-time latency constraints, clarity and simplicity are more valuable than backward compatibility.
 
+### VII. Character Independence (NON-NEGOTIABLE)
+
+The `characters/` folder is an independent package where all character behavior MUST be self-contained within character files. Generic character management functionality belongs in the LLM code.
+
+**Rules**:
+
+- Each character file MUST embed all behavior definition: name, voice source, instructions, prompt generation logic, and optional tool definitions
+- Character files MUST be loadable in isolation without dependencies on external configuration or state
+- Character files MAY import shared utilities from `characters/resources/` for common functionality (e.g., API clients, shared constants)
+- Character management code (loading, switching, validation, metrics) MUST reside in the LLM codebase (e.g., `unmute/tts/character_loader.py`)
+- The LLM code MUST NOT contain character-specific behavior; it only provides the infrastructure to load and manage characters
+- Adding a new character MUST NOT require changes to the LLM code; simply add a new character file
+- Character files MUST follow the documented structure (`CHARACTER_NAME`, `VOICE_SOURCE`, `INSTRUCTIONS`, `PromptGenerator` class)
+
+**Rationale**: Character independence enables rapid experimentation and content creation without touching core system code. This separation of concerns reduces coupling between character behavior and system infrastructure, making the codebase more maintainable and allowing non-developers to contribute characters. The pattern mirrors plugin architectures where the host system provides loading/management infrastructure while plugins provide domain-specific behavior.
+
 ## Performance Standards
 
 ### Latency Measurement Protocol
@@ -199,4 +215,4 @@ All latency measurements MUST use the standardized timing framework:
 - Performance regression alerts trigger automatic constitution review
 - Quarterly metrics review validates latency budgets remain achievable
 
-**Version**: 1.1.0 | **Ratified**: 2025-10-15 | **Last Amended**: 2025-10-17
+**Version**: 1.2.0 | **Ratified**: 2025-10-15 | **Last Amended**: 2025-10-17

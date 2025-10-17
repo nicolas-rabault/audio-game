@@ -73,6 +73,15 @@ _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 - [ ] Data migration strategy is one-way with migration code removal planned
 - [ ] Configuration cleanup removes unused legacy parameters
 
+**VII. Character Independence**
+
+- [ ] If adding/modifying characters, all character behavior is self-contained in character files
+- [ ] Character files include all required attributes: CHARACTER_NAME, VOICE_SOURCE, INSTRUCTIONS, PromptGenerator
+- [ ] Character-specific behavior is NOT added to LLM code (only character management infrastructure)
+- [ ] Character files can be loaded independently without external configuration dependencies
+- [ ] New characters do not require changes to character management code (character_loader.py)
+- [ ] Shared utilities (if needed) are placed in characters/resources/ directory
+
 ## Project Structure
 
 ### Documentation (this feature)
