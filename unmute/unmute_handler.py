@@ -240,6 +240,16 @@ class UnmuteHandler(AsyncStreamHandler):
         )
 
         messages = self.chatbot.preprocessed_messages()
+        
+        # Log what we're sending to the LLM
+        logger.info(f"[TEXT TRACE] ========== MESSAGES SENT TO LLM ==========")
+        logger.info(f"[TEXT TRACE] Number of messages: {len(messages)}")
+        for i, msg in enumerate(messages):
+            content = msg.get('content', '')
+            if len(content) > 200:
+                content = content[:200] + f"... ({len(content)} chars total)"
+            logger.info(f"[TEXT TRACE] Message {i} [{msg.get('role', 'unknown')}]: {content}")
+        logger.info(f"[TEXT TRACE] ==========================================")
 
         self.tts_output_stopwatch = Stopwatch(autostart=False)
         tts = None
