@@ -2,7 +2,8 @@
 
 **Date**: 2025-10-17  
 **Feature**: 004-change-the-conversation  
-**Status**: Fixed
+**Status**: Fixed  
+**Fixes**: Two separate bugs - frontend useEffect + backend system prompt duplication
 
 ## Problem Statement
 
@@ -11,11 +12,23 @@ After implementing the improved memory management feature in 004-change-the-conv
 1. **Characters repeat sentences twice** (except Narrator)
 2. **Cannot switch FROM Narrator** to another character
 3. Backend per-character history management was working correctly
-4. Issue appeared to be in the interaction between frontend and backend
+4. Text was being sent to TTS duplicated or twice
 
-## Root Cause Analysis
+## Two Separate Issues Found
 
-The issue was found in `/frontend/src/app/Unmute.tsx` at lines 225-241.
+### Issue #1: Frontend useEffect Dependency (FIXED)
+
+Location: `/frontend/src/app/Unmute.tsx` lines 225-241
+
+### Issue #2: Backend System Prompt Double-Generation (FIXED)
+
+Location: `/unmute/unmute_handler.py` lines 728-736 and `/unmute/llm/chatbot.py` lines 359-367
+
+---
+
+## Root Cause Analysis: Issue #1 (Frontend)
+
+The first issue was found in `/frontend/src/app/Unmute.tsx` at lines 225-241.
 
 ### The Bug
 
@@ -64,12 +77,81 @@ The Narrator didn't exhibit this issue as consistently due to timing differences
 
 The repeated `session.update` events created race conditions that interfered with subsequent character switches, especially when trying to switch away from Narrator.
 
-## The Fix
+---
+
+## Root Cause Analysis: Issue #2 (Backend)
+
+### The Bug: System Prompt Generated Twice
+
+In `unmute_handler.py` lines 728-736, the system prompt was being generated **twice** for the same character:
+
+```python
+system_prompt = prompt_generator.make_system_prompt()  # ← Call #1
+
+# Switch character (creates/retrieves history)
+self.chatbot.switch_character(session.voice, system_prompt)
+
+# Update prompt generator for future system prompt updates
+self.chatbot.set_prompt_generator(prompt_generator)  # ← Calls make_system_prompt() AGAIN!
+```
+
+In `chatbot.py` line 366:
+
+```python
+def set_prompt_generator(self, prompt_generator: PromptGenerator):
+    self._update_system_prompt(prompt_generator.make_system_prompt())  # ← Call #2!
+```
+
+### Why This Caused Duplicate/Inconsistent Text
+
+Characters like **Développeuse** and **Charles** have **non-deterministic system prompts**:
+
+**Développeuse** (line 47):
+
+```python
+conversation_starter_suggestion=random.choice(CONVERSATION_STARTER_SUGGESTIONS)
+```
+
+- Uses `random.choice()` to select a conversation starter
+- Also includes dynamic timestamp
+- Each call to `make_system_prompt()` produces a **DIFFERENT** prompt!
+
+**Charles** (line 9):
+
+```python
+'instruction_prompt': "...Pour ton premier tour de parole, tu te présentes en français en 2 phrases..."
+```
+
+- Explicit instruction: "For your first turn, you introduce yourself"
+- This triggers initial greeting generation
+
+### Why Narrator Didn't Have This Issue
+
+**Narrator** (line 13-20):
+
+```python
+INSTRUCTIONS = {
+    'instruction_prompt': """
+    Tu es le narrateur et tu dois aider ton hote a selectionner une histoire...
+    """,
+    'language': 'fr'
+}
+```
+
+- **No random elements** - static instructions
+- **No dynamic values** - no timestamps or random choices
+- **No "greet first" directive** - just describes role
+- Calling `make_system_prompt()` twice produces **identical** results
+- **No duplication!**
+
+---
+
+## The Fixes
+
+### Fix #1: Frontend useEffect Dependency
 
 **File**: `/frontend/src/app/Unmute.tsx`  
 **Lines**: 225-246
-
-### Solution
 
 Remove `sendMessage` from the dependency array since:
 
@@ -93,6 +175,55 @@ Remove `sendMessage` from the dependency array since:
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [unmuteConfig, readyState]); // ✅ Only re-run on config or connection changes
 ```
+
+### Fix #2: Backend System Prompt Double-Generation
+
+**File**: `/unmute/llm/chatbot.py`  
+**Lines**: 369-379 (new method added)
+
+**File**: `/unmute/unmute_handler.py`  
+**Lines**: 733-736
+
+**Solution**: Add a new method `set_prompt_generator_without_updating()` that stores the generator without regenerating the system prompt:
+
+**Before (BUGGY):**
+
+```python
+# Switch character (creates/retrieves history)
+self.chatbot.switch_character(session.voice, system_prompt)
+
+# Update prompt generator - BUG: calls make_system_prompt() AGAIN!
+self.chatbot.set_prompt_generator(prompt_generator)
+```
+
+**After (FIXED):**
+
+```python
+# Switch character (creates/retrieves history)
+self.chatbot.switch_character(session.voice, system_prompt)
+
+# Store prompt generator for tools and future use
+# Use set_prompt_generator_without_updating to avoid calling make_system_prompt() twice
+self.chatbot.set_prompt_generator_without_updating(prompt_generator)
+```
+
+**New method in chatbot.py:**
+
+```python
+def set_prompt_generator_without_updating(self, prompt_generator: PromptGenerator):
+    """Set the prompt generator WITHOUT regenerating/updating the system prompt.
+
+    Use this when the system prompt has already been set (e.g., via switch_character())
+    and you just need to store the generator for later use (tools, etc.).
+
+    This avoids calling make_system_prompt() twice, which is important because
+    make_system_prompt() may be non-deterministic (contain random elements or
+    dynamic timestamps).
+    """
+    self._prompt_generator = prompt_generator
+```
+
+---
 
 ## Backend Protection (Already in Place)
 
@@ -175,34 +306,40 @@ The `sendMessage` function from `react-use-websocket`:
 
 ## Related Files Modified
 
-1. **Frontend**: `/frontend/src/app/Unmute.tsx` (lines 225-246)
+### Issue #1 (Frontend):
+
+1. **`/frontend/src/app/Unmute.tsx`** (lines 225-246)
    - Removed `sendMessage` from useEffect dependencies
    - Added explanatory comment
    - Added eslint-disable comment for exhaustive-deps rule
 
-## No Backend Changes Required
+### Issue #2 (Backend):
 
-The backend implementation in `unmute_handler.py` and `chatbot.py` was working correctly:
+1. **`/unmute/llm/chatbot.py`** (lines 369-379)
 
-- Per-character history management: ✅ Working
-- Character switching logic: ✅ Working
-- Duplicate switch prevention: ✅ Working
-- Memory management: ✅ Working
+   - Added new method `set_prompt_generator_without_updating()`
+   - Avoids double-generation of non-deterministic system prompts
 
-The issue was purely in the frontend triggering unnecessary backend calls.
+2. **`/unmute/unmute_handler.py`** (lines 733-736)
+   - Changed from `set_prompt_generator()` to `set_prompt_generator_without_updating()`
+   - Added explanatory comments about avoiding double-generation
 
 ## Impact
 
-**Before Fix:**
+**Before Fixes:**
 
-- ❌ Characters repeated sentences twice
+- ❌ Characters repeated sentences twice (both issues contributed)
+- ❌ Inconsistent system prompts (Issue #2)
+- ❌ Duplicate session.update events (Issue #1)
 - ❌ Difficult to switch from Narrator
 - ❌ Poor user experience
 - ❌ Wasted backend resources on duplicate processing
 
-**After Fix:**
+**After Both Fixes:**
 
 - ✅ Characters speak each sentence exactly once
+- ✅ Consistent system prompts (no random re-generation)
+- ✅ Single session.update per character switch
 - ✅ Seamless character switching (including from/to Narrator)
 - ✅ Clean, predictable behavior
 - ✅ Efficient backend usage
@@ -211,9 +348,12 @@ The issue was purely in the frontend triggering unnecessary backend calls.
 
 1. **Unstable function references** in React dependency arrays can cause subtle bugs
 2. **Event handlers and callbacks** should rarely be dependencies
-3. **Backend protection** alone isn't sufficient if frontend sends duplicates
-4. **Timing-dependent bugs** can manifest differently across characters
-5. **React-use-websocket's `sendMessage`** should not be in dependency arrays
+3. **Non-deterministic functions** (with random/dynamic values) should NEVER be called multiple times
+4. **System prompt generation** should happen exactly once per character switch
+5. **Backend protection** alone isn't sufficient if frontend sends duplicates
+6. **Timing-dependent bugs** can manifest differently across characters
+7. **React-use-websocket's `sendMessage`** should not be in dependency arrays
+8. **Read the comments!** The code comment said "make_system_prompt() might not be deterministic, so we run it only once" - but then called it twice!
 
 ## References
 

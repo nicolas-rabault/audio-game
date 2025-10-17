@@ -365,6 +365,18 @@ class Chatbot:
         """
         self._update_system_prompt(prompt_generator.make_system_prompt())
         self._prompt_generator = prompt_generator
+    
+    def set_prompt_generator_without_updating(self, prompt_generator: PromptGenerator):
+        """Set the prompt generator WITHOUT regenerating/updating the system prompt.
+        
+        Use this when the system prompt has already been set (e.g., via switch_character())
+        and you just need to store the generator for later use (tools, etc.).
+        
+        This avoids calling make_system_prompt() twice, which is important because
+        make_system_prompt() may be non-deterministic (contain random elements or
+        dynamic timestamps).
+        """
+        self._prompt_generator = prompt_generator
 
     def _update_system_prompt(self, system_prompt: str):
         """Update the system prompt for the current character."""

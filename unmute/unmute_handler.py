@@ -730,8 +730,10 @@ class UnmuteHandler(AsyncStreamHandler):
                     # Switch character (creates/retrieves history)
                     self.chatbot.switch_character(session.voice, system_prompt)
                     
-                    # Update prompt generator for future system prompt updates
-                    self.chatbot.set_prompt_generator(prompt_generator)
+                    # Store prompt generator for tools and future use
+                    # Use set_prompt_generator_without_updating to avoid calling make_system_prompt() twice
+                    # (it may contain random elements, causing duplicate/inconsistent prompts)
+                    self.chatbot.set_prompt_generator_without_updating(prompt_generator)
                     
                     logger.info(f"Character switch complete. History size: {len(self.chatbot.get_current_history())} messages")
                     
