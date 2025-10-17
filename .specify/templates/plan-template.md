@@ -29,19 +29,22 @@
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+_GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
 **I. Service Isolation**
+
 - [ ] Feature does NOT require modifications to TTS, LLM, or STT services
 - [ ] All service interactions happen via existing interfaces/protocols
 - [ ] Any service limitations are documented with workarounds (not fixes)
 
 **II. Performance Testing**
+
 - [ ] Feature includes loadtest scenarios if it affects audio pipeline or user interaction timing
 - [ ] Performance acceptance criteria defined with specific latency targets
 - [ ] Baseline metrics identified for regression comparison
 
 **III. Latency Budgets**
+
 - [ ] Feature design respects frame-level constraints (24kHz sample rate, 1920 sample frames, 80ms frame time)
 - [ ] Any new pipeline stages fit within relevant latency budgets:
   - STT first token: <100ms (p95)
@@ -50,15 +53,25 @@
 - [ ] Feature does not introduce blocking operations in audio path
 
 **IV. Async-First Architecture**
+
 - [ ] All I/O operations use async/await patterns
 - [ ] Inter-task communication uses `asyncio.Queue`
 - [ ] Timing measurements use `Stopwatch`/`PhasesStopwatch` from `timer.py`
 - [ ] No blocking operations in main event loop
 
 **V. Observability & Metrics**
+
 - [ ] New user flows include Prometheus metrics instrumentation
 - [ ] Metrics cover: counters (sessions/errors), histograms (latencies), gauges (active sessions)
 - [ ] Service integration points emit connection attempt/failure metrics
+
+**VI. Clean Break Evolution**
+
+- [ ] If modifying existing functionality, plan includes complete removal of old implementation
+- [ ] No backward compatibility layers, feature flags, or compatibility shims introduced
+- [ ] Documentation updates remove all references to deprecated/legacy approaches
+- [ ] Data migration strategy is one-way with migration code removal planned
+- [ ] Configuration cleanup removes unused legacy parameters
 
 ## Project Structure
 
@@ -75,6 +88,7 @@ specs/[###-feature]/
 ```
 
 ### Source Code (repository root)
+
 <!--
   ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
   for this feature. Delete unused options and expand the chosen structure with
@@ -123,9 +137,9 @@ directories captured above]
 
 ## Complexity Tracking
 
-*Fill ONLY if Constitution Check has violations that must be justified*
+_Fill ONLY if Constitution Check has violations that must be justified_
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+| Violation                  | Why Needed         | Simpler Alternative Rejected Because |
+| -------------------------- | ------------------ | ------------------------------------ |
+| [e.g., 4th project]        | [current need]     | [why 3 projects insufficient]        |
+| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient]  |

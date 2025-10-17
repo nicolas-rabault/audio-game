@@ -240,12 +240,14 @@ const Unmute = () => {
     );
   }, [unmuteConfig, readyState, sendMessage]);
 
-  // Disconnect when the voice changes.
-  // TODO: If it's a voice change, immediately reconnect with the new voice.
-  useEffect(() => {
-    setShouldConnect(false);
-    shutdownAudio();
-  }, [shutdownAudio, unmuteConfig.voice]);
+  // Character switching is now handled via session.update without disconnecting (Feature 003)
+  // The backend maintains separate conversation histories per character
+  // Previous behavior: disconnected and reconnected on every character change
+  // New behavior: seamless switching while maintaining WebSocket connection
+  // useEffect(() => {
+  //   setShouldConnect(false);
+  //   shutdownAudio();
+  // }, [shutdownAudio, unmuteConfig.voice]);
 
   if (!healthStatus || !backendServerUrl) {
     return (

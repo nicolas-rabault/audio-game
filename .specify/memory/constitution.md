@@ -1,15 +1,16 @@
 <!--
 SYNC IMPACT REPORT
-Version: 0.0.0 → 1.0.0 (Initial constitution creation)
-Modified Principles: N/A (new constitution)
+Version: 1.0.0 → 1.1.0 (New principle added)
+Modified Principles: None
 Added Sections:
-  - All core principles (Service Isolation, Performance Testing, Latency Budgets, Async-First, Observability)
-  - Performance Standards
-  - Development Workflow
+  - VI. Clean Break Evolution (NON-NEGOTIABLE)
+Removed Sections: None
 Templates Requiring Updates:
-  ✅ plan-template.md (constitution check section exists)
-  ✅ spec-template.md (user scenarios align with testing principle)
-  ⚠ tasks-template.md (may need performance task categories)
+  ✅ plan-template.md (added constitution check for Clean Break Evolution)
+  ✅ spec-template.md (aligns with backward compatibility removal principle)
+  ✅ tasks-template.md (aligns with cleanup requirements)
+  ✅ agent-file-template.md (no changes needed - template references constitution)
+  ✅ checklist-template.md (no changes needed - template references constitution)
 Follow-up TODOs: None
 -->
 
@@ -22,6 +23,7 @@ Follow-up TODOs: None
 The TTS (Text-to-Speech), LLM (Large Language Model), and STT (Speech-to-Text) services are **production-stable external dependencies** and MUST NOT be modified, replaced, or reimplemented as part of feature development.
 
 **Rules**:
+
 - All three services (TTS, LLM, STT) are treated as black-box external APIs
 - Changes to integration code (handlers, queue management, protocol adapters) are permitted
 - Service configuration (URLs, models, parameters) may be adjusted via environment variables
@@ -35,6 +37,7 @@ The TTS (Text-to-Speech), LLM (Large Language Model), and STT (Speech-to-Text) s
 Every feature that affects the audio pipeline, user interaction timing, or service integration MUST include performance benchmarking using the loadtest framework before being considered complete.
 
 **Rules**:
+
 - Performance tests MUST measure latency distributions (mean, median, p90, p95) for affected components
 - Loadtest MUST use realistic audio samples and multi-worker scenarios (minimum 4 workers for integration tests)
 - Test results MUST include:
@@ -53,6 +56,7 @@ Every feature that affects the audio pipeline, user interaction timing, or servi
 All components MUST operate within defined latency budgets derived from production metrics bins. Violations of these budgets require architectural review.
 
 **Target Latencies** (p95, based on metrics.py bins):
+
 - **STT First Token**: <100ms (TTFT_BINS_STT_MS)
 - **TTS First Token**: <550ms (TTFT_BINS_TTS_MS)
 - **LLM First Token**: <500ms (TTFT_BINS_VLLM_MS)
@@ -60,6 +64,7 @@ All components MUST operate within defined latency budgets derived from producti
 - **TTS Realtime Factor**: >1.0 (audio generation must be faster than playback)
 
 **Frame-Level Constraints**:
+
 - Sample rate: 24000 Hz (SAMPLE_RATE constant)
 - Frame size: 1920 samples (SAMPLES_PER_FRAME constant)
 - Frame time: 80ms (FRAME_TIME_SEC constant)
@@ -72,6 +77,7 @@ All components MUST operate within defined latency budgets derived from producti
 All I/O-bound operations and service interactions MUST use async/await patterns. Blocking operations are prohibited in the main event loop.
 
 **Rules**:
+
 - Use `asyncio.Queue` for inter-task communication (see `output_queue` in `UnmuteHandler`)
 - Use `asyncio.create_task()` for concurrent operations (see emit/receive loops in loadtest)
 - Use `Stopwatch` and `PhasesStopwatch` from `timer.py` for timing measurements within async contexts
@@ -85,17 +91,34 @@ All I/O-bound operations and service interactions MUST use async/await patterns.
 All production code paths MUST emit Prometheus metrics for monitoring. Changes affecting user flows require corresponding metric updates.
 
 **Required Metrics Categories** (from `metrics.py`):
+
 - **Counters**: Sessions, errors, interrupts, frames sent/received
 - **Histograms**: Latencies (TTFT), durations (session, turn, generation), request/response sizes
 - **Gauges**: Active sessions per service (STT, TTS, LLM)
 
 **Mandatory Instrumentation Points**:
+
 - Service connection attempts and failures (e.g., `STT_MISSES`, `TTS_HARD_MISSES`)
 - Time-to-first-token for all streaming services (e.g., `STT_TTFT`, `TTS_TTFT`, `VLLM_TTFT`)
 - Session lifecycle events (start, end, duration)
 - Audio processing metrics (frames sent/received, audio duration)
 
 **Rationale**: Production observability is not optional. The metrics bins defined in `metrics.py` represent operational knowledge about system behavior. Instrumentation must happen at development time, not as an afterthought.
+
+### VI. Clean Break Evolution (NON-NEGOTIABLE)
+
+When modifying existing functionality, the old implementation MUST be completely removed from code, data structures, and documentation. Backward compatibility layers are explicitly prohibited.
+
+**Rules**:
+
+- When changing an API, protocol, or data format, remove all traces of the old version
+- Old code paths, feature flags for deprecated features, and compatibility shims MUST be deleted
+- Documentation MUST reflect only the current implementation (no "legacy" or "deprecated" sections)
+- Data migration MUST be one-way: convert old data to new format and delete migration code afterward
+- Configuration files MUST NOT contain unused legacy parameters
+- When renaming functions, variables, or modules, update all references—do not keep aliases
+
+**Rationale**: Maintaining backward compatibility creates technical debt that accumulates over time. Multiple code paths for the same functionality increase cognitive load, complicate testing, and obscure the canonical way to accomplish tasks. Clean breaks force intentional design decisions and keep the codebase maintainable. In a rapidly evolving system with real-time latency constraints, clarity and simplicity are more valuable than backward compatibility.
 
 ## Performance Standards
 
@@ -104,6 +127,7 @@ All production code paths MUST emit Prometheus metrics for monitoring. Changes a
 All latency measurements MUST use the standardized timing framework:
 
 1. **User Message Timing** (`UserMessageTiming`):
+
    - `audio_start`: When user audio begins
    - `text_start`: When STT emits first transcription token
    - `audio_end`: When user audio ends
@@ -118,12 +142,14 @@ All latency measurements MUST use the standardized timing framework:
 ### Testing Discipline
 
 **Unit Tests** (pytest):
+
 - Pure functions MUST have unit tests with clear input/output examples
 - See `tests/test_llm_utils.py` for async iterator testing patterns
 - See `tests/test_exponential_moving_average.py` for numerical algorithm testing patterns
 - Use `pytest.approx()` for floating-point comparisons
 
 **Integration Tests** (loadtest framework):
+
 - End-to-end pipeline tests MUST use `loadtest_client.py`
 - Test with diverse audio samples from `loadtest/voices/` directory
 - Multi-worker tests (`--n-workers`) are mandatory for concurrency validation
@@ -156,18 +182,21 @@ All latency measurements MUST use the standardized timing framework:
 ## Governance
 
 **Amendment Procedure**:
+
 1. Proposed changes to principles require concrete evidence from production metrics or incident analysis
 2. New principles require demonstration of cross-cutting impact on ≥3 features
 3. All amendments MUST update dependent templates in `.specify/templates/`
 
 **Versioning Policy**:
+
 - **MAJOR**: Service isolation rules change, latency budgets redefined, architectural paradigm shift
 - **MINOR**: New principle added, existing principle materially expanded
 - **PATCH**: Clarifications, examples added, wording improvements
 
 **Compliance Review**:
+
 - All pull requests MUST reference constitution compliance in description
 - Performance regression alerts trigger automatic constitution review
 - Quarterly metrics review validates latency budgets remain achievable
 
-**Version**: 1.0.0 | **Ratified**: 2025-10-15 | **Last Amended**: 2025-10-15
+**Version**: 1.1.0 | **Ratified**: 2025-10-15 | **Last Amended**: 2025-10-17

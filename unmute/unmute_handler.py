@@ -159,7 +159,7 @@ class UnmuteHandler(AsyncStreamHandler):
                 chat_history=[
                     # Not trying to hide the system prompt, just making it less verbose
                     m
-                    for m in self.chatbot.chat_history
+                    for m in self.chatbot.get_current_history()
                     if m["role"] != "system"
                 ],
                 debug_dict=self.debug_dict,
@@ -187,14 +187,14 @@ class UnmuteHandler(AsyncStreamHandler):
         await self.quest_manager.add(quest)
 
     async def _generate_response_task(self):
-        generating_message_i = len(self.chatbot.chat_history)
+        generating_message_i = len(self.chatbot.get_current_history())
 
         await self.output_queue.put(
             ora.ResponseCreated(
                 response=ora.Response(
                     status="in_progress",
                     voice=self.tts_voice or "missing",
-                    chat_history=self.chatbot.chat_history,
+                    chat_history=self.chatbot.get_current_history(),
                 )
             )
         )
@@ -270,7 +270,7 @@ class UnmuteHandler(AsyncStreamHandler):
                     error_from_tts = True
                     raise
 
-                if len(self.chatbot.chat_history) > generating_message_i:
+                if len(self.chatbot.get_current_history()) > generating_message_i:
                     break  # We've been interrupted
 
                 assert isinstance(delta, str)  # make Pyright happy
@@ -340,14 +340,14 @@ class UnmuteHandler(AsyncStreamHandler):
             # Debugging mode: always send a fixed string when it's the user's turn.
             if self.chatbot.conversation_state() == "waiting_for_user":
                 logger.info("Using TTS debugging text. Ignoring microphone.")
-                self.chatbot.chat_history.append(
+                self.chatbot.get_current_history().append(
                     {"role": "user", "content": TTS_DEBUGGING_TEXT}
                 )
                 await self._generate_response()
             return
 
         if (
-            len(self.chatbot.chat_history) == 1
+            len(self.chatbot.get_current_history()) == 1
             # Wait until the instructions are updated. A bit hacky
             and self.chatbot.get_prompt_generator() is not None
         ):
@@ -458,6 +458,11 @@ class UnmuteHandler(AsyncStreamHandler):
         self.waiting_for_user_start_time = self.audio_received_sec()
 
     async def __aexit__(self, *exc: Any) -> None:
+        # Clear all character conversation histories
+        if hasattr(self, 'chatbot'):
+            self.chatbot.clear_all_histories()
+            logger.info(f"Session cleanup: cleared all character histories")
+        
         # Clean up session-specific character modules from sys.modules
         if hasattr(self, 'character_manager'):
             self.character_manager.cleanup_session_modules()
@@ -574,7 +579,7 @@ class UnmuteHandler(AsyncStreamHandler):
                         ),
                     }
 
-                if len(self.chatbot.chat_history) > generating_message_i:
+                if len(self.chatbot.get_current_history()) > generating_message_i:
                     break
 
                 if isinstance(message, TTSAudioMessage):
@@ -655,7 +660,7 @@ class UnmuteHandler(AsyncStreamHandler):
         last_assistant_message = next(
             (
                 msg
-                for msg in reversed(self.chatbot.chat_history)
+                for msg in reversed(self.chatbot.get_current_history())
                 if msg["role"] == "assistant"
             ),
             {"content": ""},
@@ -684,21 +689,51 @@ class UnmuteHandler(AsyncStreamHandler):
 
     async def update_session(self, session: ora.SessionConfig):
         if session.voice:
-            self.tts_voice = session.voice
+            # Validate character name is not empty
+            if not session.voice.strip():
+                logger.error("Invalid character name: empty or whitespace-only")
+                return
+            
+            # Use turn_transition_lock to prevent switching during LLM response
+            async with self.turn_transition_lock:
+                self.tts_voice = session.voice
 
-            # Look up the character from this session's character manager
-            character = self.character_manager.get_character(session.voice)
+                # Look up the character from this session's character manager
+                character = self.character_manager.get_character(session.voice)
 
-            if character and hasattr(character, '_prompt_generator'):
-                # Store character for tool access
-                self.current_character = character  # type: ignore
-
-                # Instantiate the PromptGenerator with the character's instructions
-                logger.info(f"Setting prompt generator for character: {session.voice}")
-                logger.info(f"Character instructions: {getattr(character, '_instructions', 'NOT FOUND')}")
-                prompt_generator = character._prompt_generator(character._instructions)  # type: ignore
-                self.chatbot.set_prompt_generator(prompt_generator)
-                logger.info(f"System prompt updated: {self.chatbot.get_system_prompt()[:200]}...")
+                if not character:
+                    logger.error(f"Character not found: {session.voice}. Keeping current character.")
+                    return
+                
+                if not hasattr(character, '_prompt_generator'):
+                    logger.error(f"Character {session.voice} missing _prompt_generator. Keeping current character.")
+                    return
+                
+                try:
+                    # Store character for tool access (needed for 003-on-characters-i feature)
+                    self.current_character = character  # type: ignore
+                    
+                    # Instantiate the PromptGenerator with the character's instructions
+                    logger.info(f"Switching to character: {session.voice}")
+                    logger.info(f"Character instructions: {getattr(character, '_instructions', 'NOT FOUND')}")
+                    prompt_generator = character._prompt_generator(character._instructions)  # type: ignore
+                    system_prompt = prompt_generator.make_system_prompt()
+                    
+                    # Switch character (creates/retrieves history)
+                    self.chatbot.switch_character(session.voice, system_prompt)
+                    
+                    # Update prompt generator for future system prompt updates
+                    self.chatbot.set_prompt_generator(prompt_generator)
+                    
+                    logger.info(f"Character switch complete. History size: {len(self.chatbot.get_current_history())} messages")
+                    
+                    # Update CHARACTER_HISTORIES_PER_SESSION gauge
+                    mt.CHARACTER_HISTORIES_PER_SESSION.set(len(self.chatbot.character_histories))
+                
+                except Exception as e:
+                    logger.error(f"Character switch failed for {session.voice}: {e}", exc_info=True)
+                    # Keep current character - don't crash the session
+                    return
 
         if not session.allow_recording and self.recorder:
             await self.recorder.add_event("client", ora.SessionUpdate(session=session))

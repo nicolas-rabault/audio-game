@@ -155,3 +155,39 @@ CHARACTER_LOAD_PER_SESSION = Counter(
     "Characters loaded per session",
     ["session_id"]
 )
+
+# Per-character conversation history metrics (Feature 003)
+CHARACTER_SWITCH_COUNT = Counter(
+    "character_switch_total",
+    "Number of character switches",
+    ["from_character", "to_character"]
+)
+
+CHARACTER_SWITCH_DURATION = Histogram(
+    "character_switch_duration_seconds",
+    "Time taken to switch characters",
+    buckets=[0.001, 0.01, 0.1, 0.5, 1.0, 2.0, 5.0]
+)
+
+CHARACTER_HISTORY_SIZE = Gauge(
+    "character_history_messages",
+    "Number of messages in character history",
+    ["character"]
+)
+
+CHARACTER_HISTORY_CLEARS = Counter(
+    "character_history_clears_total",
+    "Number of times character history was cleared",
+    ["character", "reason"]  # reason: "manual", "session_end"
+)
+
+CHARACTER_HISTORIES_PER_SESSION = Gauge(
+    "character_histories_per_session",
+    "Number of different character histories in current session"
+)
+
+CHARACTER_HISTORY_TRUNCATIONS = Counter(
+    "character_history_truncations_total",
+    "Number of times history was truncated due to size limit",
+    ["character"]
+)
