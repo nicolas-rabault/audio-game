@@ -238,7 +238,12 @@ const Unmute = () => {
         },
       })
     );
-  }, [unmuteConfig, readyState, sendMessage]);
+    // Note: sendMessage is intentionally NOT in the dependency array
+    // because it's an unstable reference from react-use-websocket that
+    // changes frequently. We only want this effect to run when the
+    // config or connection state changes, not when sendMessage is recreated.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unmuteConfig, readyState]);
 
   // Character switching is now handled via session.update without disconnecting (Feature 003)
   // The backend maintains separate conversation histories per character
