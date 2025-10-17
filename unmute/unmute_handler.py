@@ -39,6 +39,7 @@ from unmute.recorder import Recorder
 from unmute.service_discovery import find_instance
 from unmute.stt.speech_to_text import SpeechToText, STTMarkerMessage
 from unmute.timer import Stopwatch
+from unmute.tts.character_loader import CharacterManager
 from unmute.tts.text_to_speech import (
     TextToSpeech,
     TTSAudioMessage,
@@ -88,6 +89,10 @@ class UnmuteHandler(AsyncStreamHandler):
         self.n_samples_received = 0  # Used for measuring time
         self.output_queue: asyncio.Queue[HandlerOutput] = asyncio.Queue()
         self.recorder = Recorder(RECORDINGS_DIR) if RECORDINGS_DIR else None
+
+        # Per-session character manager (enables multiple users with different character sets)
+        self.character_manager = CharacterManager()
+        self._characters_loaded = False
 
         self.quest_manager = QuestManager()
 
@@ -414,9 +419,27 @@ class UnmuteHandler(AsyncStreamHandler):
 
     async def start_up(self):
         await self.start_up_stt()
+
+        # Load default characters for this session
+        default_characters_dir = Path(__file__).parents[1] / "characters"
+        try:
+            result = await self.character_manager.load_characters(default_characters_dir)
+            self._characters_loaded = True
+            logger.info(
+                f"Session {self.character_manager.session_id}: Loaded {result.loaded_count} characters "
+                f"from {default_characters_dir} ({result.error_count} errors)"
+            )
+        except Exception as e:
+            logger.error(f"Session {self.character_manager.session_id}: Failed to load characters: {e}")
+            # Continue without characters - session can still function
+
         self.waiting_for_user_start_time = self.audio_received_sec()
 
     async def __aexit__(self, *exc: Any) -> None:
+        # Clean up session-specific character modules from sys.modules
+        if hasattr(self, 'character_manager'):
+            self.character_manager.cleanup_session_modules()
+
         return await self.quest_manager.__aexit__(*exc)
 
     async def start_up_stt(self):
@@ -641,21 +664,16 @@ class UnmuteHandler(AsyncStreamHandler):
         if session.voice:
             self.tts_voice = session.voice
 
-            # Look up the character and instantiate its PromptGenerator
-            from unmute.main_websocket import get_character_manager
-            character_manager = get_character_manager()
-            character = character_manager.get_character(session.voice)
+            # Look up the character from this session's character manager
+            character = self.character_manager.get_character(session.voice)
 
             if character and hasattr(character, '_prompt_generator'):
                 # Instantiate the PromptGenerator with the character's instructions
-                prompt_generator = character._prompt_generator(character.instructions)  # type: ignore
+                logger.info(f"Setting prompt generator for character: {session.voice}")
+                logger.info(f"Character instructions: {getattr(character, '_instructions', 'NOT FOUND')}")
+                prompt_generator = character._prompt_generator(character._instructions)  # type: ignore
                 self.chatbot.set_prompt_generator(prompt_generator)
-            elif session.instructions:
-                # Fallback to using instructions dict if no character found
-                self.chatbot.set_instructions(session.instructions)
-        elif session.instructions:
-            # If only instructions provided (no voice), use them directly
-            self.chatbot.set_instructions(session.instructions)
+                logger.info(f"System prompt updated: {self.chatbot.get_system_prompt()[:200]}...")
 
         if not session.allow_recording and self.recorder:
             await self.recorder.add_event("client", ora.SessionUpdate(session=session))

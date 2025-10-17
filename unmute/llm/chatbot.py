@@ -124,35 +124,6 @@ class Chatbot:
         self._update_system_prompt(prompt_generator.make_system_prompt())
         self._prompt_generator = prompt_generator
 
-    # Legacy method for backwards compatibility
-    def set_instructions(self, instructions: dict[str, Any] | PromptGenerator):
-        """Set instructions using either a dict or a PromptGenerator.
-
-        If a dict is provided, it should have a 'instruction_prompt' field and
-        will be wrapped in a simple PromptGenerator.
-        """
-        if hasattr(instructions, 'make_system_prompt'):
-            # It's already a PromptGenerator
-            self.set_prompt_generator(instructions)  # type: ignore
-        else:
-            # It's a dict, create a simple wrapper
-            class SimplePromptGenerator:
-                def __init__(self, instructions_dict: dict[str, Any]):
-                    self.instructions = instructions_dict
-
-                def make_system_prompt(self) -> str:
-                    instruction_prompt = self.instructions.get('instruction_prompt', _DEFAULT_ADDITIONAL_INSTRUCTIONS)
-                    return _SYSTEM_PROMPT_TEMPLATE.format(
-                        _SYSTEM_PROMPT_BASICS=_SYSTEM_PROMPT_BASICS,
-                        additional_instructions=instruction_prompt,
-                        language_instructions=LANGUAGE_CODE_TO_INSTRUCTIONS.get(
-                            self.instructions.get('language')
-                        ),
-                        llm_name=get_readable_llm_name(),
-                    )
-
-            self.set_prompt_generator(SimplePromptGenerator(instructions))  # type: ignore
-
     def _update_system_prompt(self, system_prompt: str):
         self.chat_history[0] = {"role": "system", "content": system_prompt}
 

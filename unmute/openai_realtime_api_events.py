@@ -62,8 +62,6 @@ class Error(BaseEvent[Literal["error"]]):
 
 
 class SessionConfig(BaseModel):
-    # The "instructions" dict is an Unmute extension
-    instructions: dict[str, Any] | None = None
     voice: str | None = None
     allow_recording: bool
 
@@ -171,6 +169,44 @@ class UnmuteInterruptedByVAD(BaseEvent[Literal["unmute.interrupted_by_vad"]]):
     """The VAD interrupted the response generation."""
 
 
+# Character management events
+
+class SessionCharactersReload(BaseEvent[Literal["session.characters.reload"]]):
+    """Client event to reload characters from a new directory."""
+    directory: str = Field(
+        ...,
+        description="Absolute path to character directory or 'default'"
+    )
+
+
+class SessionCharactersList(BaseEvent[Literal["session.characters.list"]]):
+    """Client event to request current character list."""
+    pass
+
+
+class CharacterInfo(BaseModel):
+    """Character summary for client display."""
+    name: str
+    good: bool | None = None
+    comment: str | None = None
+
+
+class SessionCharactersReloaded(BaseEvent[Literal["session.characters.reloaded"]]):
+    """Server event confirming characters reloaded."""
+    directory: str
+    loaded_count: int
+    error_count: int
+    total_files: int
+    characters: list[CharacterInfo]
+
+
+class SessionCharactersListed(BaseEvent[Literal["session.characters.listed"]]):
+    """Server event providing current character list."""
+    directory: str
+    character_count: int
+    characters: list[CharacterInfo]
+
+
 # Server events (from OpenAI to client)
 ServerEvent = Union[
     Error,
@@ -187,6 +223,8 @@ ServerEvent = Union[
     UnmuteResponseTextDeltaReady,
     UnmuteResponseAudioDeltaReady,
     UnmuteInterruptedByVAD,
+    SessionCharactersReloaded,
+    SessionCharactersListed,
 ]
 
 # Client events (from client to OpenAI)
@@ -195,6 +233,8 @@ ClientEvent = Union[
     InputAudioBufferAppend,
     # Used internally for recording, we're not expecting the user to send this
     UnmuteInputAudioBufferAppendAnonymized,
+    SessionCharactersReload,
+    SessionCharactersList,
 ]
 
 Event = ClientEvent | ServerEvent

@@ -60,10 +60,11 @@ from unmute.unmute_handler import UnmuteHandler
 
 app = FastAPI()
 
-# Global CharacterManager instance
+# Global CharacterManager instance (used only for /v1/voices endpoint for initial character discovery)
+# Per-session character management is handled by UnmuteHandler.character_manager
 _character_manager: CharacterManager | None = None
 
-# Global set to track active WebSocket connections for reload functionality
+# Global set to track active WebSocket connections (legacy, kept for compatibility)
 _active_websockets: set[WebSocket] = set()
 
 logger = logging.getLogger(__name__)
@@ -100,17 +101,21 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup_event():
-    """Load characters from characters/ directory at startup."""
+    """Load default characters for /v1/voices endpoint.
+
+    Note: Each WebSocket session creates its own CharacterManager instance.
+    This global manager is only used for the /v1/voices HTTP endpoint.
+    """
     global _character_manager
     from pathlib import Path
 
-    _character_manager = CharacterManager()
+    _character_manager = CharacterManager(session_id="global")
     characters_dir = Path(__file__).parents[1] / "characters"
 
     try:
         result = await _character_manager.load_characters(characters_dir)
         logger.info(
-            f"Character loading complete: {result.loaded_count}/{result.total_files} files loaded "
+            f"Global character loading complete: {result.loaded_count}/{result.total_files} files loaded "
             f"({result.error_count} errors) in {result.load_duration:.2f}s"
         )
     except FileNotFoundError as e:
@@ -119,7 +124,10 @@ async def startup_event():
 
 
 def get_character_manager() -> CharacterManager:
-    """Get the global CharacterManager instance."""
+    """Get the global CharacterManager instance (used for /v1/voices endpoint only).
+
+    Note: For WebSocket sessions, use handler.character_manager instead.
+    """
     if _character_manager is None:
         raise RuntimeError("CharacterManager not initialized. Call startup_event() first.")
     return _character_manager
@@ -294,9 +302,13 @@ class CharacterReloadRequest(BaseModel):
 @app.post("/v1/characters/reload")
 async def reload_characters_endpoint(request: CharacterReloadRequest):
     """
-    Reload characters from a new directory.
+    [DEPRECATED] Global character reload endpoint.
 
-    WARNING: This will terminate all active WebSocket sessions and force clients to reconnect.
+    This endpoint reloads the global character manager used by /v1/voices.
+    It does NOT affect active WebSocket sessions, which have their own character managers.
+
+    **Recommended approach**: Use the WebSocket event `session.characters.reload` for
+    per-session character reloading without affecting other users.
 
     Args:
         request: CharacterReloadRequest with directory path
@@ -346,14 +358,11 @@ async def reload_characters_endpoint(request: CharacterReloadRequest):
         # Step 2: Clear the cache for the /v1/voices endpoint
         voices.cache_clear()
 
-        # Step 3: Terminate all active WebSocket sessions
-        await terminate_all_sessions(
-            reason=f"Characters reloaded from {characters_dir}"
-        )
-
+        # Note: We no longer terminate sessions since they have their own character managers
+        # This only affects the global manager used by /v1/voices
         logger.info(
-            f"Characters reloaded successfully: {result.loaded_count}/{result.total_files} loaded "
-            f"from {characters_dir}"
+            f"Global characters reloaded successfully: {result.loaded_count}/{result.total_files} loaded "
+            f"from {characters_dir}. Active sessions are unaffected."
         )
 
         return JSONResponse(
@@ -657,6 +666,128 @@ async def receive_loop(
         elif isinstance(message, ora.SessionUpdate):
             await handler.update_session(message.session)
             await emit_queue.put(ora.SessionUpdated(session=message.session))
+
+        elif isinstance(message, ora.SessionCharactersReload):
+            # Handle character reload request
+            try:
+                # Resolve "default" to actual default directory
+                if message.directory == "default":
+                    from pathlib import Path
+                    characters_dir = Path(__file__).parent / "characters"
+                else:
+                    from pathlib import Path
+                    characters_dir = Path(message.directory)
+
+                # Validate directory exists
+                if not characters_dir.exists():
+                    await emit_queue.put(
+                        ora.Error(
+                            error=ora.ErrorDetails(
+                                type="server_error",
+                                code="directory_not_found",
+                                message=f"Character directory not found: {characters_dir}",
+                            )
+                        )
+                    )
+                    continue
+
+                if not characters_dir.is_dir():
+                    await emit_queue.put(
+                        ora.Error(
+                            error=ora.ErrorDetails(
+                                type="server_error",
+                                code="invalid_directory_format",
+                                message=f"Path is not a directory: {characters_dir}",
+                            )
+                        )
+                    )
+                    continue
+
+                # Load characters
+                result = await handler.character_manager.reload_characters(characters_dir)
+
+                # Check if any characters loaded successfully
+                if result.loaded_count == 0:
+                    await emit_queue.put(
+                        ora.Error(
+                            error=ora.ErrorDetails(
+                                type="server_error",
+                                code="no_valid_characters",
+                                message=f"No valid characters found in directory: {characters_dir}",
+                            )
+                        )
+                    )
+                    continue
+
+                # Build character info list
+                characters = [
+                    ora.CharacterInfo(
+                        name=char.name,
+                        good=char.good if hasattr(char, 'good') else None,
+                        comment=char.comment if hasattr(char, 'comment') else None,
+                    )
+                    for char in result.characters.values()
+                ]
+
+                # Send success response
+                await emit_queue.put(
+                    ora.SessionCharactersReloaded(
+                        directory=str(characters_dir),
+                        loaded_count=result.loaded_count,
+                        error_count=result.error_count,
+                        total_files=result.total_files,
+                        characters=characters,
+                    )
+                )
+
+                logger.info(
+                    f"Session {handler.character_manager.session_id}: Reloaded {result.loaded_count} "
+                    f"characters from {characters_dir}"
+                )
+
+            except Exception as e:
+                logger.error(f"Failed to reload characters: {e}", exc_info=True)
+                await emit_queue.put(
+                    ora.Error(
+                        error=ora.ErrorDetails(
+                            type="server_error",
+                            code="character_reload_failed",
+                            message=f"Failed to reload characters: {str(e)}",
+                        )
+                    )
+                )
+
+        elif isinstance(message, ora.SessionCharactersList):
+            # Handle character list request
+            try:
+                characters = [
+                    ora.CharacterInfo(
+                        name=char.name,
+                        good=char.good if hasattr(char, 'good') else None,
+                        comment=char.comment if hasattr(char, 'comment') else None,
+                    )
+                    for char in handler.character_manager.characters.values()
+                ]
+
+                await emit_queue.put(
+                    ora.SessionCharactersListed(
+                        directory=str(handler.character_manager._current_directory or ""),
+                        character_count=len(characters),
+                        characters=characters,
+                    )
+                )
+
+            except Exception as e:
+                logger.error(f"Failed to list characters: {e}", exc_info=True)
+                await emit_queue.put(
+                    ora.Error(
+                        error=ora.ErrorDetails(
+                            type="server_error",
+                            code="character_list_failed",
+                            message=f"Failed to list characters: {str(e)}",
+                        )
+                    )
+                )
 
         elif isinstance(message, ora.UnmuteAdditionalOutputs):
             # Don't record this: it's a debugging message and can be verbose. Anything

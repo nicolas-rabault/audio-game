@@ -14,6 +14,7 @@ import inspect
 import logging
 import sys
 import time
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict
@@ -45,13 +46,14 @@ class CharacterLoadResult:
     load_duration: float
 
 
-def _load_character_file_sync(file_path: Path) -> Dict[str, Any]:
+def _load_character_file_sync(file_path: Path, module_prefix: str) -> Dict[str, Any]:
     """
     Synchronously load a character file and extract its attributes.
     This function is wrapped by asyncio.to_thread() to avoid blocking.
 
     Args:
         file_path: Path to character .py file
+        module_prefix: Session-unique module prefix (e.g., "session_abc12345.characters")
 
     Returns:
         Dict with character attributes
@@ -60,23 +62,25 @@ def _load_character_file_sync(file_path: Path) -> Dict[str, Any]:
         ImportError: If module cannot be loaded
         AttributeError: If required attributes are missing
     """
-    # Ensure the characters package is in sys.modules
+    # Ensure the session-specific characters package is in sys.modules
     # This is needed for imports like "from characters.shared_constants import ..."
+    # Note: We still need the base 'characters' module for relative imports to work
     if 'characters' not in sys.modules:
         import characters
         sys.modules['characters'] = characters
 
+    # Create session-specific module name (e.g., "session_abc12345.characters.charles")
+    module_name = f"{module_prefix}.{file_path.stem}"
+
     # Load module using importlib
-    spec = importlib.util.spec_from_file_location(
-        f"characters.{file_path.stem}", file_path
-    )
+    spec = importlib.util.spec_from_file_location(module_name, file_path)
     if spec is None or spec.loader is None:
         raise ImportError(f"Cannot create module spec from {file_path}")
 
     module = importlib.util.module_from_spec(spec)
 
     # Register the module in sys.modules before executing to support internal imports
-    sys.modules[spec.name] = module
+    sys.modules[module_name] = module
 
     spec.loader.exec_module(module)
 
@@ -143,16 +147,19 @@ async def _validate_character_data(
                 )
 
         # Create VoiceSample with Pydantic validation
+        # Note: instructions are NOT part of VoiceSample schema - they are attached as internal attributes
         character = VoiceSample(
             name=raw_data["name"],
             source=raw_data["voice_source"],
-            instructions=raw_data["instructions"],
             **raw_data.get("metadata", {}),
         )
 
         # Attach internal fields (not persisted)
         character._source_file = file_path.name  # type: ignore
+        character._instructions = raw_data["instructions"]  # type: ignore
         character._prompt_generator = prompt_generator_class  # type: ignore
+
+        logger.debug(f"{file_path.name}: Attached _instructions={raw_data['instructions']}")
 
         return character
 
@@ -166,19 +173,20 @@ async def _validate_character_data(
         return None
 
 
-async def _load_single_character(file_path: Path) -> VoiceSample | None:
+async def _load_single_character(file_path: Path, module_prefix: str) -> VoiceSample | None:
     """
     Load and validate a single character file.
 
     Args:
         file_path: Path to character .py file
+        module_prefix: Session-unique module prefix
 
     Returns:
         VoiceSample if successful, None if failed
     """
     try:
         # Load file (run in thread to avoid blocking event loop)
-        raw_data = await asyncio.to_thread(_load_character_file_sync, file_path)
+        raw_data = await asyncio.to_thread(_load_character_file_sync, file_path, module_prefix)
 
         # Validate data
         character = await _validate_character_data(raw_data, file_path)
@@ -202,29 +210,48 @@ async def _load_single_character(file_path: Path) -> VoiceSample | None:
 
 
 class CharacterManager:
-    """Manager for loading and accessing characters from Python files."""
+    """Manager for loading and accessing characters from Python files.
 
-    def __init__(self):
+    Each CharacterManager instance is scoped to a session, enabling
+    multiple simultaneous users to load different character sets independently.
+
+    Args:
+        session_id: Optional session identifier. If not provided, generates a unique ID.
+                   Used to create isolated module namespaces in sys.modules.
+    """
+
+    def __init__(self, session_id: str | None = None):
+        # Generate unique session ID if not provided
+        if session_id is None:
+            session_id = str(uuid.uuid4())[:8]  # Short 8-char ID for readability
+
+        self.session_id = session_id
+        # Create session-unique module prefix (e.g., "session_abc12345.characters")
+        self.module_prefix = f"session_{self.session_id}.characters"
+
         self.characters: Dict[str, VoiceSample] = {}
         self._load_result: CharacterLoadResult | None = None
         self._current_directory: Path | None = None
 
+        logger.debug(f"CharacterManager initialized with session_id={self.session_id}, module_prefix={self.module_prefix}")
+
     def _cleanup_character_modules(self) -> None:
         """
-        Remove all previously loaded character modules from sys.modules.
+        Remove all session-specific character modules from sys.modules.
         This ensures a clean reload without stale imports.
         """
-        # Find all modules in the characters.* namespace
+        # Find all modules in this session's namespace (e.g., "session_abc12345.characters.*")
+        prefix = f"{self.module_prefix}."
         character_modules = [
             module_name
             for module_name in sys.modules.keys()
-            if module_name.startswith("characters.")
+            if module_name.startswith(prefix)
         ]
 
         # Remove them from sys.modules
         for module_name in character_modules:
             del sys.modules[module_name]
-            logger.debug(f"Removed module from sys.modules: {module_name}")
+            logger.debug(f"Cleaned up session module: {module_name}")
 
     async def reload_characters(self, characters_dir: Path) -> CharacterLoadResult:
         """
@@ -304,9 +331,9 @@ class CharacterManager:
                 f"No character files found in {characters_dir}. System will start with empty character list."
             )
 
-        # Load all characters concurrently
+        # Load all characters concurrently with session-specific module prefix
         loaded_characters = await asyncio.gather(
-            *[_load_single_character(file_path) for file_path in character_files]
+            *[_load_single_character(file_path, self.module_prefix) for file_path in character_files]
         )
 
         # Build character dictionary with duplicate detection
@@ -353,14 +380,38 @@ class CharacterManager:
 
         return self._load_result
 
-    def get_character(self, name: str) -> VoiceSample | None:
+    def get_character(self, name_or_voice_path: str) -> VoiceSample | None:
         """
-        Get a character by name.
+        Get a character by name or voice path.
 
         Args:
-            name: Character name to retrieve
+            name_or_voice_path: Character name (e.g., "Fabieng") or voice path (e.g., "unmute-prod-website/fabieng-enhanced-v2.wav")
 
         Returns:
             VoiceSample if found, None otherwise
         """
-        return self.characters.get(name)
+        # First try direct name lookup
+        character = self.characters.get(name_or_voice_path)
+        if character:
+            return character
+
+        # If not found, try matching by voice path
+        for char in self.characters.values():
+            voice_path = char.source.model_dump().get('path_on_server')
+            if voice_path == name_or_voice_path:
+                return char
+
+        return None
+
+    def cleanup_session_modules(self) -> None:
+        """
+        Clean up all session-specific modules from sys.modules.
+
+        This should be called when a session ends to prevent memory leaks.
+        It removes all character modules loaded for this session from the global
+        module registry.
+
+        Called by UnmuteHandler.__aexit__() during session cleanup.
+        """
+        self._cleanup_character_modules()
+        logger.info(f"Session {self.session_id} modules cleaned up")

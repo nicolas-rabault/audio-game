@@ -220,7 +220,7 @@ const Unmute = () => {
     }
   }, [audioProcessor, lastMessage]);
 
-  // When we connect, we send the initial config (voice and instructions) to the server.
+  // When we connect, we send the initial config (voice) to the server.
   // Also clear the chat history.
   useEffect(() => {
     if (readyState !== ReadyState.OPEN) return;
@@ -233,7 +233,6 @@ const Unmute = () => {
       JSON.stringify({
         type: "session.update",
         session: {
-          instructions: unmuteConfig.instructions,
           voice: unmuteConfig.voice,
           allow_recording: recordingConsent,
         },
@@ -241,12 +240,12 @@ const Unmute = () => {
     );
   }, [unmuteConfig, readyState, sendMessage]);
 
-  // Disconnect when the voice or instruction changes.
+  // Disconnect when the voice changes.
   // TODO: If it's a voice change, immediately reconnect with the new voice.
   useEffect(() => {
     setShouldConnect(false);
     shutdownAudio();
-  }, [shutdownAudio, unmuteConfig.voice, unmuteConfig.instructions]);
+  }, [shutdownAudio, unmuteConfig.voice]);
 
   if (!healthStatus || !backendServerUrl) {
     return (

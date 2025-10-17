@@ -168,7 +168,6 @@ class VoiceSample(BaseModel):
     name: str | None = None
     comment: str | None = None
     good: bool | None = None
-    instructions: dict[str, Any] | None = None
     source: FreesoundVoiceSource | FileVoiceSource = Field(discriminator="source_type")
 
 

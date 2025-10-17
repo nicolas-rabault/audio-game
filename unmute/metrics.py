@@ -136,3 +136,22 @@ CHARACTER_LOAD_DURATION = Histogram(
     buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0]
 )
 CHARACTERS_LOADED = Gauge("worker_characters_loaded", "Number of characters currently loaded")
+
+# Per-session character management metrics
+CHARACTER_RELOAD_DURATION = Histogram(
+    "character_reload_duration_seconds",
+    "Time to reload characters mid-session",
+    buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
+)
+
+SESSION_CHARACTER_COUNT = Gauge(
+    "session_character_count",
+    "Number of characters currently loaded in a session",
+    ["session_id"]
+)
+
+CHARACTER_LOAD_PER_SESSION = Counter(
+    "character_load_per_session_total",
+    "Characters loaded per session",
+    ["session_id"]
+)
