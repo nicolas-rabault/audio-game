@@ -145,9 +145,8 @@ class Chatbot:
             - Updates last_accessed timestamp
             - Emits CHARACTER_SWITCH metrics
         """
-        from unmute.timer import audio_received_sec
+        from unmute.timer import get_time, Stopwatch
         from unmute import metrics as mt
-        from unmute.timer import Stopwatch
         
         # Validate inputs
         if not character_name or not character_name.strip():
@@ -166,7 +165,7 @@ class Chatbot:
         
         # Create history if this is a new character
         if character_name not in self.character_histories:
-            current_time = audio_received_sec()
+            current_time = get_time()
             self.character_histories[character_name] = CharacterHistory(
                 character_name=character_name,
                 system_prompt=system_prompt,
@@ -175,7 +174,7 @@ class Chatbot:
             logger.info(f"Created new history for character: {character_name}")
         else:
             # Update last accessed time for existing character
-            current_time = audio_received_sec()
+            current_time = get_time()
             self.character_histories[character_name].last_accessed = current_time
             logger.info(f"Restored history for character: {character_name} ({self.character_histories[character_name].message_count} messages)")
         
